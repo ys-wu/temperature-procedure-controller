@@ -14,21 +14,21 @@ const PortDropdown: React.FC = () => {
   const [ports, setPorts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchPorts = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(SERIAL_PORTS_URL);
-        const data = await response.json();
-        setPorts(data.ports);
-      } catch (error) {
-        message.error('Failed to fetch available ports');
-        console.error('Error fetching ports:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPorts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(SERIAL_PORTS_URL);
+      const data = await response.json();
+      setPorts(data.ports);
+    } catch (error) {
+      message.error('Failed to fetch available ports');
+      console.error('Error fetching ports:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchPorts();
   }, []);
 
@@ -52,6 +52,9 @@ const PortDropdown: React.FC = () => {
           </Space>
         </Button>
       </Dropdown>
+      <Button onClick={fetchPorts} loading={loading}>
+        Refresh Ports
+      </Button>
     </Space>
   );
 };
