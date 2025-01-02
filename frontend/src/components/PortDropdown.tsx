@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Button, Dropdown, message, Space } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { Button, Dropdown, message, Space } from 'antd';
 import axios from 'axios';
 import { SELECT_SERIAL_PORT_URL, SERIAL_PORTS_URL } from '../constants';
 
