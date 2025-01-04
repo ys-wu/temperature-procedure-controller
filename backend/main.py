@@ -52,6 +52,32 @@ message = {
     "temperature_status": "OK",
 }
 
+# Sample temperature procedures
+temperature_procedures = [
+    {
+        "id": 1,
+        "name": "Basic Heat Up",
+        "steps": [
+            {"temperature": 30, "duration": 300},
+            {"temperature": 50, "duration": 600},
+            {"temperature": 25, "duration": 300},
+        ],
+    },
+    {
+        "id": 2,
+        "name": "Quick Test",
+        "steps": [
+            {"temperature": 40, "duration": 120},
+            {"temperature": 45, "duration": 180},
+        ],
+    },
+]
+
+
+@app.get("/procedures")
+def get_procedures():
+    return {"procedures": temperature_procedures}
+
 
 class ConnectionManager:
     def __init__(self):

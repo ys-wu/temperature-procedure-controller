@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
-import temperatureReducer from './slices/temperatureSlice';
 import serialPortReducer from './slices/serialPortSlice';
+import temperatureReducer from './slices/temperatureSlice';
+import procedureReducer from './slices/procedureSlice';
 
 export const store = configureStore({
   reducer: {
-    temperature: temperatureReducer,
     serialPort: serialPortReducer,
+    temperature: temperatureReducer,
+    procedures: procedureReducer,
   },
 });
 
