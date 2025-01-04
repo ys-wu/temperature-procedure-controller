@@ -1,8 +1,9 @@
 import React from 'react';
 import { Tabs } from 'antd';
 import PortDropdown from './components/PortDropdown';
-import TemperatureProcedure from './components/TemperatureProcedure';
 import TemperatureDisplay from './components/TemperatureDisplay';
+import ManualControl from './components/ManualControl';
+import TemperatureProcedure from './components/TemperatureProcedure';
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
           {
             key: 'manual',
             label: 'Manual',
-            children: <div>Manual Control</div>,
+            children: <ManualControl />,
           },
           {
             key: 'procedure',

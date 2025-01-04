@@ -20,6 +20,10 @@ class PortRequest(BaseModel):
     port: str
 
 
+class TemperatureRequest(BaseModel):
+    temperature: float
+
+
 @app.get("/")
 def read_root():
     return {"message": "Temperature Procedure Controller API"}
@@ -35,10 +39,16 @@ def set_serial_port(request: PortRequest):
     return {"message": f"Serial port set to {request.port}"}
 
 
+@app.post("/set-temperature")
+def set_temperature(request: TemperatureRequest):
+    global message
+    message["temperature_setpoint"] = request.temperature
+    return {"temperature": request.temperature}
+
+
 message = {
     "temperature_setpoint": 25,
     "temperature_actual": 25,
-    "temperature_error": 0,
     "temperature_status": "OK",
 }
 
@@ -64,6 +74,10 @@ class ConnectionManager:
             while True:
                 if websocket.client_state.value == 3:  # WebSocket.DISCONNECTED
                     break
+                global message
+                message["temperature_actual"] += (
+                    message["temperature_setpoint"] - message["temperature_actual"]
+                ) / 10
                 await websocket.send_json(message)
                 await asyncio.sleep(1)
         except WebSocketDisconnect:
