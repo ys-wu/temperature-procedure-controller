@@ -24,6 +24,16 @@ class TemperatureRequest(BaseModel):
     temperature: float
 
 
+class ProcedureStep(BaseModel):
+    temperature: float
+    duration: int
+
+
+class CreateProcedureRequest(BaseModel):
+    name: str
+    steps: list[ProcedureStep]
+
+
 @app.get("/")
 def read_root():
     return {"message": "Temperature Procedure Controller API"}
@@ -44,6 +54,20 @@ def set_temperature(request: TemperatureRequest):
     global message
     message["temperature_setpoint"] = request.temperature
     return {"temperature": request.temperature}
+
+
+@app.post("/procedures")
+def create_procedure(request: CreateProcedureRequest):
+    new_procedure = {
+        "id": len(temperature_procedures) + 1,
+        "name": request.name,
+        "steps": [
+            {"temperature": step.temperature, "duration": step.duration}
+            for step in request.steps
+        ],
+    }
+    temperature_procedures.append(new_procedure)
+    return new_procedure
 
 
 message = {

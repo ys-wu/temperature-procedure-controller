@@ -12,6 +12,11 @@ export interface TemperatureProcedure {
   steps: ProcedureStep[];
 }
 
+interface CreateProcedurePayload {
+  name: string;
+  steps: ProcedureStep[];
+}
+
 interface ProcedureState {
   procedures: TemperatureProcedure[];
   selectedProcedure: TemperatureProcedure | null;
@@ -32,6 +37,21 @@ export const fetchProcedures = createAsyncThunk(
     const response = await fetch(`${HTTP_BASE_URL}/procedures`);
     const data = await response.json();
     return data.procedures;
+  }
+);
+
+export const createProcedure = createAsyncThunk(
+  'procedures/createProcedure',
+  async (procedure: CreateProcedurePayload) => {
+    const response = await fetch(`${HTTP_BASE_URL}/procedures`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(procedure),
+    });
+    const data = await response.json();
+    return data;
   }
 );
 
@@ -59,6 +79,19 @@ const procedureSlice = createSlice({
       .addCase(fetchProcedures.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch procedures';
+      })
+      .addCase(createProcedure.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createProcedure.fulfilled, (state, action) => {
+        state.procedures.push(action.payload);
+        state.loading = false;
+        state.selectedProcedure = action.payload;
+      })
+      .addCase(createProcedure.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to create procedure';
       });
   },
 });
