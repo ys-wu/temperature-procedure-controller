@@ -117,6 +117,25 @@ def delete_procedure(procedure_id: int):
     return {"success": True, "message": "Procedure deleted"}
 
 
+@app.put("/procedures/{procedure_id}")
+def update_procedure(procedure_id: int, request: CreateProcedureRequest):
+    global temperature_procedures
+    for i, procedure in enumerate(temperature_procedures):
+        if procedure["id"] == procedure_id:
+            updated_procedure = {
+                "id": procedure_id,
+                "name": request.name,
+                "steps": [
+                    {"temperature": step.temperature, "duration": step.duration}
+                    for step in request.steps
+                ],
+            }
+            temperature_procedures[i] = updated_procedure
+            return updated_procedure
+
+    return {"success": False, "message": "Procedure not found"}
+
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []

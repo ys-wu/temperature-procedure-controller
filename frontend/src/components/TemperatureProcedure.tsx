@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card, List, Typography, Tag, Spin, Row, Col, Button, Form, Input, Space, Modal, InputNumber, Popconfirm } from 'antd';
-import { PlusOutlined, MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusCircleOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchProcedures, selectProcedure, createProcedure, deleteProcedure, type TemperatureProcedure as TProcedure } from '../store/slices/procedureSlice';
+import { fetchProcedures, selectProcedure, createProcedure, deleteProcedure, updateProcedure, type TemperatureProcedure as TProcedure } from '../store/slices/procedureSlice';
 
 const { Title, Text } = Typography;
 
@@ -17,6 +17,7 @@ const TemperatureProcedure: React.FC = () => {
     (state) => state.procedures
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingProcedure, setEditingProcedure] = useState<TProcedure | null>(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -27,24 +28,42 @@ const TemperatureProcedure: React.FC = () => {
     dispatch(selectProcedure(procedure));
   };
 
-  const showModal = () => {
+  const showModal = (procedure?: TProcedure) => {
+    if (procedure) {
+      setEditingProcedure(procedure);
+      form.setFieldsValue(procedure);
+    } else {
+      setEditingProcedure(null);
+      form.resetFields();
+    }
     setIsModalVisible(true);
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
+    setEditingProcedure(null);
     form.resetFields();
   };
 
-  const handleCreate = async (values: ProcedureFormValues) => {
-    await dispatch(createProcedure(values));
+  const handleSubmit = async (values: ProcedureFormValues) => {
+    if (editingProcedure) {
+      await dispatch(updateProcedure({ id: editingProcedure.id, procedure: values }));
+    } else {
+      await dispatch(createProcedure(values));
+    }
     setIsModalVisible(false);
+    setEditingProcedure(null);
     form.resetFields();
   };
 
   const handleDelete = async (procedureId: number, e?: React.MouseEvent) => {
-    e?.stopPropagation(); // Prevent triggering the list item click
+    e?.stopPropagation();
     await dispatch(deleteProcedure(procedureId));
+  };
+
+  const handleEdit = (e: React.MouseEvent, procedure: TProcedure) => {
+    e.stopPropagation();
+    showModal(procedure);
   };
 
   if (loading) {
@@ -59,7 +78,7 @@ const TemperatureProcedure: React.FC = () => {
     <>
       <Card
         title={<Title level={4}>Temperature Procedures</Title>}
-        extra={<Button type="primary" icon={<PlusOutlined />} onClick={showModal}>New Procedure</Button>}
+        extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>New Procedure</Button>}
       >
         <Row gutter={16}>
           <Col span={8}>
@@ -74,6 +93,12 @@ const TemperatureProcedure: React.FC = () => {
                     backgroundColor: selectedProcedure?.id === procedure.id ? '#f0f0f0' : 'transparent'
                   }}
                   actions={[
+                    <Button
+                      key="edit"
+                      type="text"
+                      icon={<EditOutlined />}
+                      onClick={(e) => handleEdit(e, procedure)}
+                    />,
                     <Popconfirm
                       key="delete"
                       title="Delete Procedure"
@@ -120,14 +145,14 @@ const TemperatureProcedure: React.FC = () => {
       </Card>
 
       <Modal
-        title="Create New Procedure"
+        title={editingProcedure ? "Edit Procedure" : "Create New Procedure"}
         open={isModalVisible}
         onCancel={handleCancel}
         footer={null}
       >
         <Form
           form={form}
-          onFinish={handleCreate}
+          onFinish={handleSubmit}
           layout="vertical"
           initialValues={{ steps: [{}] }}
         >
@@ -176,7 +201,7 @@ const TemperatureProcedure: React.FC = () => {
 
           <Form.Item>
             <Button type="primary" htmlType="submit" loading={loading}>
-              Create Procedure
+              {editingProcedure ? 'Update' : 'Create'} Procedure
             </Button>
           </Form.Item>
         </Form>

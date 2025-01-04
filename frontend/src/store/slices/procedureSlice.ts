@@ -69,6 +69,24 @@ export const deleteProcedure = createAsyncThunk(
   }
 );
 
+export const updateProcedure = createAsyncThunk(
+  'procedures/updateProcedure',
+  async ({ id, procedure }: { id: number; procedure: CreateProcedurePayload }) => {
+    const response = await fetch(`${HTTP_BASE_URL}/procedures/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(procedure),
+    });
+    const data = await response.json();
+    if (!data.id) {
+      throw new Error(data.message || 'Failed to update procedure');
+    }
+    return data;
+  }
+);
+
 const procedureSlice = createSlice({
   name: 'procedures',
   initialState,
@@ -121,6 +139,24 @@ const procedureSlice = createSlice({
       .addCase(deleteProcedure.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to delete procedure';
+      })
+      .addCase(updateProcedure.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProcedure.fulfilled, (state, action) => {
+        const index = state.procedures.findIndex(p => p.id === action.payload.id);
+        if (index !== -1) {
+          state.procedures[index] = action.payload;
+          if (state.selectedProcedure?.id === action.payload.id) {
+            state.selectedProcedure = action.payload;
+          }
+        }
+        state.loading = false;
+      })
+      .addCase(updateProcedure.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to update procedure';
       });
   },
 });
