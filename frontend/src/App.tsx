@@ -2,12 +2,14 @@ import React from 'react';
 import { Tabs } from 'antd';
 import PortDropdown from './components/PortDropdown';
 import TemperatureProcedure from './components/TemperatureProcedure';
+import TemperatureDisplay from './components/TemperatureDisplay';
 
 function App() {
   return (
     <div>
       <h1>Temperature Procedure Controller</h1>
       <PortDropdown />
+      <TemperatureDisplay />
       <Tabs
         defaultActiveKey="manual"
         items={[
