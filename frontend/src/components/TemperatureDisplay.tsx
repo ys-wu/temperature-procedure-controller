@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Card, Statistic, Row, Col } from 'antd';
 import { WS_URL } from '../constants';
+import { setTemperatureSetpoint, setActualTemperature } from '../store/slices/temperatureSlice';
+import { RootState } from '../store';
 
 const TemperatureDisplay: React.FC = () => {
-  const [setpoint, setSetpoint] = useState<number | null>(null);
-  const [actualTemp, setActualTemp] = useState<number | null>(null);
+  const dispatch = useDispatch();
+  const { setpoint, actualTemp } = useSelector((state: RootState) => state.temperature);
 
   useEffect(() => {
     let ws: WebSocket;
@@ -30,10 +33,10 @@ const TemperatureDisplay: React.FC = () => {
           try {
             const data = JSON.parse(event.data);
             if (data.temperature_setpoint !== undefined) {
-              setSetpoint(data.temperature_setpoint);
+              dispatch(setTemperatureSetpoint(data.temperature_setpoint));
             }
             if (data.temperature_actual !== undefined) {
-              setActualTemp(data.temperature_actual);
+              dispatch(setActualTemperature(data.temperature_actual));
             }
           } catch (error) {
             console.error('Error parsing WebSocket message:', error);
@@ -48,7 +51,6 @@ const TemperatureDisplay: React.FC = () => {
         ws.onclose = (event) => {
           console.log('WebSocket connection closed:', event.code, event.reason);
           isConnecting = false;
-          // Attempt to reconnect after 3 seconds
           reconnectTimeout = setTimeout(connectWebSocket, timeoutMS);
         };
       } catch (error) {
@@ -65,7 +67,7 @@ const TemperatureDisplay: React.FC = () => {
       ws?.close();
       clearTimeout(reconnectTimeout);
     };
-  }, []);
+  }, [dispatch]);
 
   return (
     <Card>
