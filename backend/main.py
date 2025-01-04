@@ -1,7 +1,11 @@
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from serial_device import MockSerialDevice, Temperature
+
+
+device = MockSerialDevice(25, 25)
 
 
 app = FastAPI()
@@ -50,9 +54,8 @@ def set_serial_port(request: PortRequest):
 
 
 @app.post("/set-temperature")
-def set_temperature(request: TemperatureRequest):
-    global message
-    message["temperature_setpoint"] = request.temperature
+async def set_temperature(request: TemperatureRequest):
+    await device.set_temperature(Temperature(request.temperature))
     return {"temperature": request.temperature}
 
 
@@ -69,12 +72,6 @@ def create_procedure(request: CreateProcedureRequest):
     temperature_procedures.append(new_procedure)
     return new_procedure
 
-
-message = {
-    "temperature_setpoint": 25,
-    "temperature_actual": 25,
-    "temperature_status": "OK",
-}
 
 # Sample temperature procedures
 temperature_procedures = [
@@ -157,11 +154,7 @@ class ConnectionManager:
             while True:
                 if websocket.client_state.value == 3:  # WebSocket.DISCONNECTED
                     break
-                global message
-                message["temperature_actual"] += (
-                    message["temperature_setpoint"] - message["temperature_actual"]
-                ) / 10
-                await websocket.send_json(message)
+                await websocket.send_json(device.status)
                 await asyncio.sleep(1)
         except WebSocketDisconnect:
             print("Client disconnected normally")
