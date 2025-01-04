@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Card, List, Typography, Tag, Spin, Row, Col, Button, Form, Input, Space, Modal, InputNumber } from 'antd';
-import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { Card, List, Typography, Tag, Spin, Row, Col, Button, Form, Input, Space, Modal, InputNumber, Popconfirm } from 'antd';
+import { PlusOutlined, MinusCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchProcedures, selectProcedure, createProcedure, type TemperatureProcedure as TProcedure } from '../store/slices/procedureSlice';
+import { fetchProcedures, selectProcedure, createProcedure, deleteProcedure, type TemperatureProcedure as TProcedure } from '../store/slices/procedureSlice';
 
 const { Title, Text } = Typography;
 
@@ -42,6 +42,11 @@ const TemperatureProcedure: React.FC = () => {
     form.resetFields();
   };
 
+  const handleDelete = async (procedureId: number, e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Prevent triggering the list item click
+    await dispatch(deleteProcedure(procedureId));
+  };
+
   if (loading) {
     return <Spin size="large" />;
   }
@@ -68,6 +73,23 @@ const TemperatureProcedure: React.FC = () => {
                     cursor: 'pointer',
                     backgroundColor: selectedProcedure?.id === procedure.id ? '#f0f0f0' : 'transparent'
                   }}
+                  actions={[
+                    <Popconfirm
+                      key="delete"
+                      title="Delete Procedure"
+                      description="Are you sure you want to delete this procedure?"
+                      onConfirm={() => handleDelete(procedure.id)}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </Popconfirm>
+                  ]}
                 >
                   <Text strong={selectedProcedure?.id === procedure.id}>
                     {procedure.name}

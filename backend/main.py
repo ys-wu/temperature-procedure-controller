@@ -103,6 +103,20 @@ def get_procedures():
     return {"procedures": temperature_procedures}
 
 
+@app.post("/procedures/delete/{procedure_id}")
+def delete_procedure(procedure_id: int):
+    global temperature_procedures
+    original_length = len(temperature_procedures)
+    temperature_procedures = [
+        p for p in temperature_procedures if p["id"] != procedure_id
+    ]
+
+    if len(temperature_procedures) == original_length:
+        return {"success": False, "message": "Procedure not found"}
+
+    return {"success": True, "message": "Procedure deleted"}
+
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []

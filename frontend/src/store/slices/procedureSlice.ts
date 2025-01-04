@@ -55,6 +55,20 @@ export const createProcedure = createAsyncThunk(
   }
 );
 
+export const deleteProcedure = createAsyncThunk(
+  'procedures/deleteProcedure',
+  async (procedureId: number) => {
+    const response = await fetch(`${HTTP_BASE_URL}/procedures/delete/${procedureId}`, {
+      method: 'POST',
+    });
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.message);
+    }
+    return procedureId;
+  }
+);
+
 const procedureSlice = createSlice({
   name: 'procedures',
   initialState,
@@ -92,6 +106,21 @@ const procedureSlice = createSlice({
       .addCase(createProcedure.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to create procedure';
+      })
+      .addCase(deleteProcedure.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteProcedure.fulfilled, (state, action) => {
+        state.procedures = state.procedures.filter(p => p.id !== action.payload);
+        if (state.selectedProcedure?.id === action.payload) {
+          state.selectedProcedure = state.procedures[0] || null;
+        }
+        state.loading = false;
+      })
+      .addCase(deleteProcedure.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to delete procedure';
       });
   },
 });
