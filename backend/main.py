@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from serial_device import MockSerialDevice, Temperature
-
+from model import Procedure, ProcedureStep
 
 device = MockSerialDevice(25, 25)
 
@@ -28,14 +28,14 @@ class TemperatureRequest(BaseModel):
     temperature: float
 
 
-class ProcedureStep(BaseModel):
+class ProcedureStepRequest(BaseModel):
     temperature: float
     duration: int
 
 
 class CreateProcedureRequest(BaseModel):
     name: str
-    steps: list[ProcedureStep]
+    steps: list[ProcedureStepRequest]
 
 
 @app.get("/")
@@ -59,6 +59,27 @@ async def set_temperature(request: TemperatureRequest):
     return {"temperature": request.temperature}
 
 
+procedures = [
+    Procedure(
+        name="Basic Heat Up",
+        steps=[
+            ProcedureStep(temperature=Temperature(30), duration=300),
+            ProcedureStep(temperature=Temperature(50), duration=600),
+            ProcedureStep(temperature=Temperature(25), duration=300),
+        ],
+    ),
+    Procedure(
+        name="Quick Test",
+        steps=[
+            ProcedureStep(temperature=Temperature(40), duration=120),
+            ProcedureStep(temperature=Temperature(45), duration=180),
+        ],
+    ),
+]
+
+temperature_procedures = [dict(procedure) for procedure in procedures]
+
+
 @app.post("/procedures")
 def create_procedure(request: CreateProcedureRequest):
     new_procedure = {
@@ -73,35 +94,13 @@ def create_procedure(request: CreateProcedureRequest):
     return new_procedure
 
 
-# Sample temperature procedures
-temperature_procedures = [
-    {
-        "id": 1,
-        "name": "Basic Heat Up",
-        "steps": [
-            {"temperature": 30, "duration": 300},
-            {"temperature": 50, "duration": 600},
-            {"temperature": 25, "duration": 300},
-        ],
-    },
-    {
-        "id": 2,
-        "name": "Quick Test",
-        "steps": [
-            {"temperature": 40, "duration": 120},
-            {"temperature": 45, "duration": 180},
-        ],
-    },
-]
-
-
 @app.get("/procedures")
 def get_procedures():
     return {"procedures": temperature_procedures}
 
 
 @app.post("/procedures/delete/{procedure_id}")
-def delete_procedure(procedure_id: int):
+def delete_procedure(procedure_id: str):
     global temperature_procedures
     original_length = len(temperature_procedures)
     temperature_procedures = [
@@ -115,7 +114,7 @@ def delete_procedure(procedure_id: int):
 
 
 @app.put("/procedures/{procedure_id}")
-def update_procedure(procedure_id: int, request: CreateProcedureRequest):
+def update_procedure(procedure_id: str, request: CreateProcedureRequest):
     global temperature_procedures
     for i, procedure in enumerate(temperature_procedures):
         if procedure["id"] == procedure_id:

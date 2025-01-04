@@ -1,6 +1,7 @@
 from typing import Union
 from dataclasses import dataclass
 from decimal import Decimal
+import uuid
 
 
 @dataclass(frozen=True)
@@ -58,3 +59,32 @@ class Temperature:
     def __floordiv__(self, other: Union[int, float]) -> "Temperature":
         self._check_number_type(other, "//")
         return Temperature(self.value // Decimal(str(other)))
+
+
+class ProcedureStep:
+    temperature: Temperature
+    duration: int
+
+    def __init__(self, temperature: Temperature, duration: int):
+        self.temperature = temperature
+        self.duration = duration
+
+    def __iter__(self):
+        yield ("temperature", self.temperature.float_celsius)
+        yield ("duration", self.duration)
+
+
+class Procedure:
+    id: int
+    name: str
+    steps: list[ProcedureStep]
+
+    def __init__(self, name: str, steps: list[ProcedureStep]):
+        self.id = str(uuid.uuid4())
+        self.name = name
+        self.steps = steps
+
+    def __iter__(self):
+        yield ("id", self.id)
+        yield ("name", self.name)
+        yield ("steps", [dict(step) for step in self.steps])
