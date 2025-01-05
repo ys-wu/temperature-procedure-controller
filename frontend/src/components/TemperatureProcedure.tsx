@@ -93,6 +93,7 @@ const TemperatureProcedure: React.FC = () => {
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isCompletionModalVisible, setIsCompletionModalVisible] = useState(false);
+  const [isStopConfirmVisible, setIsStopConfirmVisible] = useState(false);
   const [editingProcedure, setEditingProcedure] = useState<TProcedure | null>(null);
   const [form] = Form.useForm();
 
@@ -171,8 +172,13 @@ const TemperatureProcedure: React.FC = () => {
   };
 
   const handleStopProcedure = async () => {
+    setIsStopConfirmVisible(true);
+  };
+
+  const handleStopConfirm = async () => {
     try {
       await dispatch(stopProcedure()).unwrap();
+      setIsStopConfirmVisible(false);
     } catch (error) {
       console.error('Error stopping procedure:', error);
     }
@@ -366,6 +372,22 @@ const TemperatureProcedure: React.FC = () => {
         ]}
       >
         <p>Procedure completed.</p>
+      </Modal>
+
+      <Modal
+        title="Stop Procedure"
+        open={isStopConfirmVisible}
+        onCancel={() => setIsStopConfirmVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsStopConfirmVisible(false)}>
+            Cancel
+          </Button>,
+          <Button key="confirm" type="primary" danger onClick={handleStopConfirm}>
+            Stop Procedure
+          </Button>,
+        ]}
+      >
+        <p>Are you sure you want to stop the current procedure? This will reset its status.</p>
       </Modal>
     </>
   );
