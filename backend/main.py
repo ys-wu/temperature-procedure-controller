@@ -8,8 +8,8 @@ from services import ProcedureService, ProcedureExecutionService
 
 device = MockSerialDevice(25, 25)
 procedure_repository = JsonProcedureRepository()
-procedure_service = ProcedureService(procedure_repository)
 procedure_execution_service = ProcedureExecutionService(procedure_repository, device)
+procedure_service = ProcedureService(procedure_repository, procedure_execution_service)
 
 app = FastAPI()
 
@@ -89,6 +89,14 @@ def update_procedure(procedure_id: str, request: CreateProcedureRequest):
 @app.post("/procedures/{procedure_id}/start")
 async def start_procedure(procedure_id: str):
     return await procedure_execution_service.start_procedure(procedure_id)
+
+
+@app.post("/procedures/{procedure_id}/reset")
+def reset_procedure(procedure_id: str):
+    result = procedure_service.reset_procedure(procedure_id)
+    if not result["success"]:
+        raise HTTPException(status_code=404, detail=result["message"])
+    return result
 
 
 @app.post("/procedures/stop")

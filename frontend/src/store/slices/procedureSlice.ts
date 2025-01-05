@@ -92,6 +92,17 @@ export const stopProcedure = createAsyncThunk(
   }
 );
 
+export const resetProcedure = createAsyncThunk(
+  'procedures/resetProcedure',
+  async (procedureId: string) => {
+    const { data } = await axios.post(API_URLS.procedures.reset(procedureId));
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to reset procedure');
+    }
+    return data.procedure;
+  }
+);
+
 const initialState = {
   procedures: [] as TemperatureProcedure[],
   selectedProcedure: null as TemperatureProcedure | null,
@@ -221,6 +232,26 @@ const procedureSlice = createSlice({
       .addCase(stopProcedure.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to stop procedure';
+      })
+      .addCase(resetProcedure.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resetProcedure.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          const index = state.procedures.findIndex(p => p.id === action.payload.id);
+          if (index !== -1) {
+            state.procedures[index] = action.payload;
+            if (state.selectedProcedure?.id === action.payload.id) {
+              state.selectedProcedure = action.payload;
+            }
+          }
+        }
+      })
+      .addCase(resetProcedure.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to reset procedure';
       });
   },
 });

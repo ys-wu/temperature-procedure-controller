@@ -13,6 +13,7 @@ export const API_URLS = {
     update: (id: string) => `${PROCEDURE_BASE_URL}/${id}`,
     delete: (id: string) => `${PROCEDURE_BASE_URL}/${id}`,
     start: (id: string) => `${PROCEDURE_BASE_URL}/${id}/start`,
+    reset: (id: string) => `${PROCEDURE_BASE_URL}/${id}/reset`,
     stop: `${PROCEDURE_BASE_URL}/stop`,
     active: `${PROCEDURE_BASE_URL}/active`,
   },

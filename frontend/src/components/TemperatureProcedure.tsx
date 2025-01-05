@@ -36,6 +36,7 @@ import {
   updateProcedure,
   startProcedure,
   stopProcedure,
+  resetProcedure,
   type TemperatureProcedure as TProcedure,
   type CreateProcedurePayload,
 } from '../store/slices/procedureSlice';
@@ -91,6 +92,7 @@ const TemperatureProcedure: React.FC = () => {
     (state) => state.procedures
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isCompletionModalVisible, setIsCompletionModalVisible] = useState(false);
   const [editingProcedure, setEditingProcedure] = useState<TProcedure | null>(null);
   const [form] = Form.useForm();
 
@@ -100,8 +102,25 @@ const TemperatureProcedure: React.FC = () => {
     dispatch(fetchProcedures());
   }, [dispatch]);
 
+  useEffect(() => {
+    if (selectedProcedure?.status === 'completed') {
+      setIsCompletionModalVisible(true);
+    }
+  }, [selectedProcedure?.status]);
+
   const handleProcedureSelect = (procedure: TProcedure) => {
     dispatch(selectProcedure(procedure));
+  };
+
+  const handleCompletionConfirm = async () => {
+    if (selectedProcedure) {
+      try {
+        await dispatch(resetProcedure(selectedProcedure.id)).unwrap();
+        setIsCompletionModalVisible(false);
+      } catch (error) {
+        console.error('Error resetting procedure:', error);
+      }
+    }
   };
 
   const showModal = (procedure?: TProcedure) => {
@@ -333,6 +352,19 @@ const TemperatureProcedure: React.FC = () => {
             </Button>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="Procedure Completed"
+        open={isCompletionModalVisible}
+        onCancel={() => setIsCompletionModalVisible(false)}
+        footer={[
+          <Button key="confirm" type="primary" onClick={handleCompletionConfirm}>
+            Confirm
+          </Button>,
+        ]}
+      >
+        <p>Procedure completed.</p>
       </Modal>
     </>
   );

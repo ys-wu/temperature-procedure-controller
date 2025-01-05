@@ -1,5 +1,9 @@
 import asyncio
-from typing import TypedDict
+from typing import TypedDict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services import ProcedureExecutionService
+
 from model import Procedure, ProcedureStep, Temperature, ProcedureStatus, StepStatus
 from repository import IProcedureRepository
 from serial_device import SerialDevice
@@ -12,8 +16,13 @@ class ProcedureResponse(TypedDict):
 
 
 class ProcedureService:
-    def __init__(self, repository: IProcedureRepository):
+    def __init__(
+        self,
+        repository: IProcedureRepository,
+        execution_service: "ProcedureExecutionService | None" = None,
+    ):
         self._repository = repository
+        self._execution_service = execution_service
         self._initialize_default_procedures()
 
     def _initialize_default_procedures(self) -> None:
@@ -103,6 +112,43 @@ class ProcedureService:
             "procedure": None,
         }
 
+    def reset_procedure(self, procedure_id: str) -> ProcedureResponse:
+        procedures = self._repository.load_all()
+        procedure = next((p for p in procedures if p.id == procedure_id), None)
+
+        if not procedure:
+            return {
+                "success": False,
+                "message": "Procedure not found",
+                "procedure": None,
+            }
+
+        # Reset all steps to queued state
+        for step in procedure.steps:
+            step.status = StepStatus.QUEUED
+            step.elapsed_time = 0
+
+        # Reset procedure status to idle
+        procedure.status = ProcedureStatus.IDLE
+        procedure.current_step = -1
+
+        # Reset the active procedure in execution service if it exists
+        if self._execution_service:
+            self._execution_service.reset_active_procedure()
+
+        # Update the procedure in the repository
+        if self._repository.update(procedure):
+            return {
+                "success": True,
+                "procedure": dict(procedure),
+                "message": "Procedure reset successfully",
+            }
+        return {
+            "success": False,
+            "message": "Failed to reset procedure",
+            "procedure": None,
+        }
+
 
 class ProcedureExecutionService:
     def __init__(self, repository: IProcedureRepository, device: SerialDevice):
@@ -121,6 +167,12 @@ class ProcedureExecutionService:
             procedure_dict["status"] = self._procedure_status.value
             return procedure_dict
         return None
+
+    def reset_active_procedure(self) -> None:
+        self._active_procedure = None
+        self._procedure_status = ProcedureStatus.IDLE
+        self._task = None
+        self._should_stop = False
 
     async def start_procedure(self, procedure_id: str) -> ProcedureResponse:
         if self._active_procedure:
