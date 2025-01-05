@@ -95,7 +95,6 @@
                 "Requires Python 3.9+ for built-in collection type annotations",
                 "Use async/await for async operations",
                 "Keep functions under 50 lines",
-                "Document complex functions with docstrings",
                 "Use dependency injection",
                 "Follow SOLID principles",
                 "Use rich domain models",

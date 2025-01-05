@@ -1,11 +1,10 @@
-import uuid
 from typing import Any
 from model import Procedure, ProcedureStep, Temperature
 
 
 class ProcedureService:
     def __init__(self):
-        self.procedures = [
+        self._procedures = [
             Procedure(
                 name="Basic Heat Up",
                 steps=[
@@ -22,28 +21,32 @@ class ProcedureService:
                 ],
             ),
         ]
-        self._procedures = [dict(procedure) for procedure in self.procedures]
+
+    def _create_procedure_steps(
+        self, steps: list[tuple[float, int]]
+    ) -> list[ProcedureStep]:
+        return [
+            ProcedureStep(temperature=Temperature(temp), duration=duration)
+            for temp, duration in steps
+        ]
 
     def get_all(self) -> dict[str, list[dict[str, Any]]]:
-        return {"procedures": self._procedures}
+        return {"procedures": [dict(procedure) for procedure in self._procedures]}
 
     def create(self, name: str, steps: list[tuple[float, int]]) -> dict[str, Any]:
-        new_procedure = {
-            "id": str(uuid.uuid4()),
-            "name": name,
-            "steps": [
-                {"temperature": temp, "duration": duration} for temp, duration in steps
-            ],
-        }
-        self._procedures.append(new_procedure)
-        return new_procedure
+        try:
+            procedure_steps = self._create_procedure_steps(steps)
+            new_procedure = Procedure(name, procedure_steps)
+            self._procedures.append(new_procedure)
+            return dict(new_procedure)
+        except Exception as e:
+            return {"success": False, "message": f"Error creating procedure: {str(e)}"}
 
     def delete(self, procedure_id: str) -> dict[str, Any]:
         try:
-            # First find the procedure to ensure it exists
             procedure_to_delete = None
             for proc in self._procedures:
-                if str(proc["id"]) == procedure_id:
+                if str(proc.id) == procedure_id:
                     procedure_to_delete = proc
                     break
 
@@ -53,9 +56,7 @@ class ProcedureService:
                     "message": f"Procedure with ID {procedure_id} not found",
                 }
 
-            # Remove the procedure
             self._procedures.remove(procedure_to_delete)
-
             return {
                 "success": True,
                 "message": f"Procedure {procedure_id} deleted successfully",
@@ -67,16 +68,10 @@ class ProcedureService:
         self, procedure_id: str, name: str, steps: list[tuple[float, int]]
     ) -> dict[str, Any]:
         for i, procedure in enumerate(self._procedures):
-            if str(procedure["id"]) == procedure_id:
-                updated_procedure = {
-                    "id": procedure_id,
-                    "name": name,
-                    "steps": [
-                        {"temperature": temp, "duration": duration}
-                        for temp, duration in steps
-                    ],
-                }
+            if str(procedure.id) == procedure_id:
+                procedure_steps = self._create_procedure_steps(steps)
+                updated_procedure = Procedure(name, procedure_steps, procedure_id)
                 self._procedures[i] = updated_procedure
-                return updated_procedure
+                return dict(updated_procedure)
 
         return {"success": False, "message": "Procedure not found"}

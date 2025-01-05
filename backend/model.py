@@ -79,8 +79,8 @@ class Procedure:
     name: str
     steps: list[ProcedureStep]
 
-    def __init__(self, name: str, steps: list[ProcedureStep]):
-        self.id = str(uuid.uuid4())
+    def __init__(self, name: str, steps: list[ProcedureStep], id: str = None):
+        self.id = id or str(uuid.uuid4())
         self.name = name
         self.steps = steps
 
