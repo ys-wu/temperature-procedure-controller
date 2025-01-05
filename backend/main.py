@@ -2,11 +2,13 @@ import asyncio
 from pydantic import BaseModel
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from repository import JsonProcedureRepository
 from serial_device import MockSerialDevice, Temperature
 from services import ProcedureService
 
 device = MockSerialDevice(25, 25)
-procedure_service = ProcedureService()
+procedure_repository = JsonProcedureRepository()
+procedure_service = ProcedureService(procedure_repository)
 
 app = FastAPI()
 

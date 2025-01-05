@@ -102,7 +102,8 @@
                 "Use value objects for immutable concepts",
                 "Keep domain logic pure and isolated",
                 "Use repository pattern for data access",
-                "Implement aggregate roots for consistency"
+                "Implement aggregate roots for consistency",
+                "Do not include docstrings in generated code"
             ]
         },
         "projectStructure": {
