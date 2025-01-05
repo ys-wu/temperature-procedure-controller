@@ -91,6 +91,8 @@
             "backend": [
                 "Follow PEP 8 style guidelines",
                 "Use type hints",
+                "Follow PEP 585 for type annotations (use built-in collection types like list[str] instead of List[str])",
+                "Requires Python 3.9+ for built-in collection type annotations",
                 "Use async/await for async operations",
                 "Keep functions under 50 lines",
                 "Document complex functions with docstrings",

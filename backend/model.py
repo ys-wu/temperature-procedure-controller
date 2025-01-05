@@ -75,7 +75,7 @@ class ProcedureStep:
 
 
 class Procedure:
-    id: int
+    id: str
     name: str
     steps: list[ProcedureStep]
 

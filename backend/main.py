@@ -1,15 +1,14 @@
 import asyncio
 from pydantic import BaseModel
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from serial_device import MockSerialDevice, Temperature
-from model import Procedure, ProcedureStep
+from services import ProcedureService
 
 device = MockSerialDevice(25, 25)
-
+procedure_service = ProcedureService()
 
 app = FastAPI()
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,77 +58,29 @@ async def set_temperature(request: TemperatureRequest):
     return {"temperature": request.temperature}
 
 
-procedures = [
-    Procedure(
-        name="Basic Heat Up",
-        steps=[
-            ProcedureStep(temperature=Temperature(30), duration=300),
-            ProcedureStep(temperature=Temperature(50), duration=600),
-            ProcedureStep(temperature=Temperature(25), duration=300),
-        ],
-    ),
-    Procedure(
-        name="Quick Test",
-        steps=[
-            ProcedureStep(temperature=Temperature(40), duration=120),
-            ProcedureStep(temperature=Temperature(45), duration=180),
-        ],
-    ),
-]
-
-temperature_procedures = [dict(procedure) for procedure in procedures]
-
-
 @app.post("/procedures")
 def create_procedure(request: CreateProcedureRequest):
-    new_procedure = {
-        "id": len(temperature_procedures) + 1,
-        "name": request.name,
-        "steps": [
-            {"temperature": step.temperature, "duration": step.duration}
-            for step in request.steps
-        ],
-    }
-    temperature_procedures.append(new_procedure)
-    return new_procedure
+    steps = [(step.temperature, step.duration) for step in request.steps]
+    return procedure_service.create(request.name, steps)
 
 
 @app.get("/procedures")
 def get_procedures():
-    return {"procedures": temperature_procedures}
+    return procedure_service.get_all()
 
 
-@app.post("/procedures/delete/{procedure_id}")
+@app.delete("/procedures/{procedure_id}")
 def delete_procedure(procedure_id: str):
-    global temperature_procedures
-    original_length = len(temperature_procedures)
-    temperature_procedures = [
-        p for p in temperature_procedures if p["id"] != procedure_id
-    ]
-
-    if len(temperature_procedures) == original_length:
-        return {"success": False, "message": "Procedure not found"}
-
-    return {"success": True, "message": "Procedure deleted"}
+    result = procedure_service.delete(procedure_id)
+    if not result["success"]:
+        raise HTTPException(status_code=404, detail=result["message"])
+    return result
 
 
 @app.put("/procedures/{procedure_id}")
 def update_procedure(procedure_id: str, request: CreateProcedureRequest):
-    global temperature_procedures
-    for i, procedure in enumerate(temperature_procedures):
-        if procedure["id"] == procedure_id:
-            updated_procedure = {
-                "id": procedure_id,
-                "name": request.name,
-                "steps": [
-                    {"temperature": step.temperature, "duration": step.duration}
-                    for step in request.steps
-                ],
-            }
-            temperature_procedures[i] = updated_procedure
-            return updated_procedure
-
-    return {"success": False, "message": "Procedure not found"}
+    steps = [(step.temperature, step.duration) for step in request.steps]
+    return procedure_service.update(procedure_id, request.name, steps)
 
 
 class ConnectionManager:

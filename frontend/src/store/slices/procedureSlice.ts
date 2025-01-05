@@ -58,12 +58,15 @@ export const createProcedure = createAsyncThunk(
 export const deleteProcedure = createAsyncThunk(
   'procedures/deleteProcedure',
   async (procedureId: number) => {
-    const response = await fetch(`${HTTP_BASE_URL}/procedures/delete/${procedureId}`, {
-      method: 'POST',
+    const response = await fetch(`${HTTP_BASE_URL}/procedures/${procedureId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(data.message);
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.detail || 'Failed to delete procedure');
     }
     return procedureId;
   }
