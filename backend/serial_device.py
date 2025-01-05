@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import serial
-from typing import Optional, Callable, TypeVar, ParamSpec, Union
+from typing import Callable, TypeVar, ParamSpec
 from decimal import Decimal
 from model import Temperature
 from functools import wraps
@@ -11,7 +11,7 @@ T = TypeVar("T")
 
 def require_connection(func: Callable[P, T]) -> Callable[P, T]:
     @wraps(func)
-    async def wrapper(self: SerialDevice, *args: P.args, **kwargs: P.kwargs) -> T:
+    async def wrapper(self: "SerialDevice", *args: P.args, **kwargs: P.kwargs) -> T:
         if not await self.is_connected():
             raise ConnectionError("Device is not connected")
         return await func(self, *args, **kwargs)
@@ -41,13 +41,13 @@ class SerialDevice(ABC):
         pass
 
     @abstractmethod
-    async def status(self) -> dict:
+    async def status(self) -> dict[str, float | str]:
         pass
 
 
 class RealSerialDevice(SerialDevice):
     def __init__(self, port: str):
-        self._serial: Optional[serial.Serial] = None
+        self._serial: serial.Serial | None = None
         self._port = port
 
     async def connect(self) -> None:
@@ -93,7 +93,7 @@ class RealSerialDevice(SerialDevice):
         return self._serial is not None and self._serial.is_open
 
     @property
-    def status(self) -> dict:
+    def status(self) -> dict[str, float | str]:
         return {
             "temperature_setpoint": self._target_temp.float_celsius,
             "temperature_actual": self._current_temp.float_celsius,
@@ -104,17 +104,19 @@ class RealSerialDevice(SerialDevice):
 class MockSerialDevice(SerialDevice):
     def __init__(
         self,
-        target_temp: Temperature = None,
-        current_temp: Temperature = None,
+        target_temp: Temperature | float | int | None = None,
+        current_temp: Temperature | float | int | None = None,
         connected: bool = True,
     ):
         self._connected = connected
-        self._current_temp = self._to_temperature(current_temp)
-        self._target_temp = self._to_temperature(target_temp)
+        self._current_temp = self._to_temperature(current_temp or 25)
+        self._target_temp = self._to_temperature(target_temp or 25)
 
-    def _to_temperature(self, value: Union[Temperature, int, float]) -> Temperature:
+    def _to_temperature(self, value: Temperature | int | float | None) -> Temperature:
         if isinstance(value, Temperature):
             return value
+        if value is None:
+            value = 0
         return Temperature(value=Decimal(str(value)))
 
     def _update_temperature(self) -> None:
@@ -138,7 +140,7 @@ class MockSerialDevice(SerialDevice):
         return self._connected
 
     @property
-    def status(self) -> dict:
+    def status(self) -> dict[str, float | str]:
         self._update_temperature()
         return {
             "temperature_setpoint": self._target_temp.float_celsius,

@@ -1,7 +1,7 @@
-from typing import Union
 from dataclasses import dataclass
 from decimal import Decimal
 import uuid
+from enum import Enum
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class Temperature:
                 f"unsupported operand type(s) for {operation}: '{type(self).__name__}' and '{type(other).__name__}'"
             )
 
-    def _check_number_type(self, other: Union[int, float], operation: str) -> None:
+    def _check_number_type(self, other: int | float, operation: str) -> None:
         if not isinstance(other, (int, float)):
             raise TypeError(
                 f"unsupported operand type(s) for {operation}: '{type(self).__name__}' and '{type(other).__name__}'"
@@ -48,43 +48,70 @@ class Temperature:
         self._check_temperature_type(other, "-")
         return Temperature(self.value - other.value)
 
-    def __mul__(self, other: Union[int, float]) -> "Temperature":
+    def __mul__(self, other: int | float) -> "Temperature":
         self._check_number_type(other, "*")
         return Temperature(self.value * Decimal(str(other)))
 
-    def __truediv__(self, other: Union[int, float]) -> "Temperature":
+    def __truediv__(self, other: int | float) -> "Temperature":
         self._check_number_type(other, "/")
         return Temperature(self.value / Decimal(str(other)))
 
-    def __floordiv__(self, other: Union[int, float]) -> "Temperature":
+    def __floordiv__(self, other: int | float) -> "Temperature":
         self._check_number_type(other, "//")
         return Temperature(self.value // Decimal(str(other)))
+
+
+class StepStatus(Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class ProcedureStep:
     temperature: Temperature
     duration: int
+    status: StepStatus
+    elapsed_time: int
 
     def __init__(self, temperature: Temperature, duration: int):
         self.temperature = temperature
         self.duration = duration
+        self.status = StepStatus.QUEUED
+        self.elapsed_time = 0
 
     def __iter__(self):
         yield ("temperature", self.temperature.float_celsius)
         yield ("duration", self.duration)
+        yield ("status", self.status.value)
+        yield ("elapsed_time", self.elapsed_time)
+
+
+class ProcedureStatus(Enum):
+    IDLE = "idle"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    STOPPED = "stopped"
 
 
 class Procedure:
     id: str
     name: str
     steps: list[ProcedureStep]
+    status: ProcedureStatus
+    current_step: int
 
     def __init__(self, name: str, steps: list[ProcedureStep], id: str = None):
         self.id = id or str(uuid.uuid4())
         self.name = name
         self.steps = steps
+        self.status = ProcedureStatus.IDLE
+        self.current_step = -1
 
     def __iter__(self):
         yield ("id", self.id)
         yield ("name", self.name)
         yield ("steps", [dict(step) for step in self.steps])
+        yield ("status", self.status.value)
+        yield ("current_step", self.current_step)

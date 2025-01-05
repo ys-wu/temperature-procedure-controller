@@ -33,127 +33,161 @@
     },
     "rules": {
         "architecture": {
-            "frontend": "TypeScript/React with Redux for state management",
-            "backend": {
-                "pattern": "Clean Architecture with Domain-Driven Design",
-                "layers": {
-                    "domain": {
-                        "description": "Core business logic and domain models",
-                        "components": [
-                            "Domain entities (Temperature, Procedure, Device)",
-                            "Value objects (SetPoint, Measurement, Range)",
-                            "Domain events",
-                            "Repository interfaces",
-                            "Domain services"
-                        ]
-                    },
-                    "application": {
-                        "description": "Application use cases and orchestration",
-                        "components": [
-                            "Use cases/Application services",
-                            "DTOs",
-                            "Input/Output ports",
-                            "Event handlers"
-                        ]
-                    },
-                    "infrastructure": {
-                        "description": "External concerns and implementations",
-                        "components": [
-                            "Repository implementations",
-                            "Serial port adapters",
-                            "WebSocket handlers",
-                            "External service adapters"
-                        ]
-                    },
-                    "presentation": {
-                        "description": "API endpoints and controllers",
-                        "components": [
-                            "FastAPI routes",
-                            "Request/Response models",
-                            "API documentation"
-                        ]
-                    }
+            "frontend": {
+                "pattern": "TypeScript/React with Redux for state management",
+                "apiCalls": {
+                    "rules": [
+                        "Use axios instead of fetch for all API calls",
+                        "Manage all API calls through Redux using createAsyncThunk",
+                        "Keep API call logic in Redux slices",
+                        "Components should only dispatch actions and read state",
+                        "Use typed response data for better type safety",
+                        "Handle API errors in Redux reducers"
+                    ]
                 }
             },
-            "communication": "WebSocket and REST APIs",
-            "hardware": "Serial port communication handled by backend"
-        },
-        "codeStyle": {
-            "frontend": [
-                "Use functional components with hooks",
-                "Use TypeScript with strict type checking",
-                "Follow Redux Toolkit patterns",
-                "Use PascalCase for component files",
-                "Prefix interfaces with 'I'",
-                "Use CSS modules for styling",
-                "Keep components focused and modular"
-            ],
-            "backend": [
-                "Follow PEP 8 style guidelines",
-                "Use type hints",
-                "Follow PEP 585 for type annotations (use built-in collection types like list[str] instead of List[str])",
-                "Requires Python 3.9+ for built-in collection type annotations",
-                "Use async/await for async operations",
-                "Keep functions under 50 lines",
-                "Use dependency injection",
-                "Follow SOLID principles",
-                "Use rich domain models",
-                "Implement bounded contexts",
-                "Use value objects for immutable concepts",
-                "Keep domain logic pure and isolated",
-                "Use repository pattern for data access",
-                "Implement aggregate roots for consistency",
-                "Do not include docstrings in generated code"
-            ]
-        },
-        "projectStructure": {
-            "directories": {
-                "frontend": "/frontend",
-                "backend": {
-                    "root": "/backend",
-                    "domain": "/backend/domain",
-                    "application": "/backend/application",
-                    "infrastructure": "/backend/infrastructure",
-                    "presentation": "/backend/presentation",
-                    "tests": "/backend/tests"
+            "backend": "Clean Architecture with Domain-Driven Design",
+            "layers": {
+                "domain": {
+                    "description": "Core business logic and domain models",
+                    "components": [
+                        "Domain entities (Temperature, Procedure, Device)",
+                        "Value objects (SetPoint, Measurement, Range)",
+                        "Domain events",
+                        "Repository interfaces",
+                        "Domain services"
+                    ]
                 },
-                "components": "/frontend/src/components",
-                "reduxStore": "/frontend/src/store/slices"
+                "application": {
+                    "description": "Application use cases and orchestration",
+                    "components": [
+                        "Use cases/Application services",
+                        "DTOs",
+                        "Input/Output ports",
+                        "Event handlers"
+                    ]
+                },
+                "infrastructure": {
+                    "description": "External concerns and implementations",
+                    "components": [
+                        "Repository implementations",
+                        "Serial port adapters",
+                        "WebSocket handlers",
+                        "External service adapters"
+                    ]
+                },
+                "presentation": {
+                    "description": "API endpoints and controllers",
+                    "components": [
+                        "FastAPI routes",
+                        "Request/Response models",
+                        "API documentation"
+                    ]
+                }
             }
         },
-        "testing": [
-            "Write unit tests for critical functionality",
-            "Test Redux reducers and actions",
-            "Test API endpoints",
-            "Mock serial port communications",
-            "Write domain model unit tests",
-            "Test use cases in isolation",
-            "Use in-memory repositories for testing",
-            "Test domain invariants and business rules"
+        "communication": "WebSocket and REST APIs",
+        "hardware": "Serial port communication handled by backend"
+    },
+    "codeStyle": {
+        "frontend": [
+            "Use functional components with hooks",
+            "Use TypeScript with strict type checking",
+            "Follow Redux Toolkit patterns",
+            "Use PascalCase for component files",
+            "Prefix interfaces with 'I'",
+            "Use CSS modules for styling",
+            "Keep components focused and modular",
+            "Maximum line length of 80 characters",
+            "Use 2 spaces for indentation",
+            "Use single quotes for strings",
+            "Use trailing commas in multiline statements",
+            "Break imports into multiple lines when they exceed line length",
+            "Sort imports: React, external libraries, internal modules",
+            "Use ESLint and Prettier for code formatting",
+            "Use yarn as package manager",
+            "Keep yarn.lock in version control",
+            "Use yarn commands instead of npm (e.g., yarn add instead of npm install)",
+            "Specify exact yarn version in packageManager field"
         ],
-        "errorHandling": [
-            "Use React error boundaries",
-            "Implement serial port error handling",
-            "Log errors on both frontend and backend",
-            "Provide user-friendly error messages",
-            "Use domain exceptions for business rule violations",
-            "Implement proper error translation between layers"
-        ],
-        "performance": [
-            "Optimize Redux selectors",
-            "Minimize re-renders",
-            "Efficient WebSocket handling",
-            "Proper serial port connection cleanup",
-            "Use appropriate aggregate boundaries",
-            "Implement caching where necessary"
-        ],
-        "security": [
-            "Validate all user inputs",
-            "Handle serial port operations safely",
-            "Sanitize data",
-            "Manage serial port permissions",
-            "Validate domain invariants",
-            "Implement proper access control"
+        "backend": [
+            "Follow PEP 8 style guidelines",
+            "Use type hints",
+            "Follow PEP 585 for type annotations (use built-in collection types like list[str] instead of List[str])",
+            "Requires Python 3.9+ for built-in collection type annotations",
+            "Use async/await for async operations",
+            "Keep functions under 50 lines",
+            "Use dependency injection",
+            "Follow SOLID principles",
+            "Use rich domain models",
+            "Implement bounded contexts",
+            "Use value objects for immutable concepts",
+            "Keep domain logic pure and isolated",
+            "Use repository pattern for data access",
+            "Implement aggregate roots for consistency",
+            "Do not include docstrings in generated code"
         ]
-    }
+    },
+    "projectStructure": {
+        "directories": {
+            "frontend": "/frontend",
+            "backend": {
+                "root": "/backend",
+                "domain": "/backend/domain",
+                "application": "/backend/application",
+                "infrastructure": "/backend/infrastructure",
+                "presentation": "/backend/presentation",
+                "tests": "/backend/tests"
+            },
+            "components": "/frontend/src/components",
+            "reduxStore": "/frontend/src/store/slices"
+        },
+        "packageManager": {
+            "tool": "yarn",
+            "commands": {
+                "install": "yarn install",
+                "add": "yarn add",
+                "remove": "yarn remove",
+                "addDev": "yarn add -D",
+                "run": "yarn",
+                "format": "yarn format",
+                "lint": "yarn lint",
+                "lintFix": "yarn lint:fix"
+            }
+        }
+    },
+    "testing": [
+        "Write unit tests for critical functionality",
+        "Test Redux reducers and actions",
+        "Test API endpoints",
+        "Mock serial port communications",
+        "Write domain model unit tests",
+        "Test use cases in isolation",
+        "Use in-memory repositories for testing",
+        "Test domain invariants and business rules"
+    ],
+    "errorHandling": [
+        "Use React error boundaries",
+        "Implement serial port error handling",
+        "Log errors on both frontend and backend",
+        "Provide user-friendly error messages",
+        "Use domain exceptions for business rule violations",
+        "Implement proper error translation between layers"
+    ],
+    "performance": [
+        "Optimize Redux selectors",
+        "Minimize re-renders",
+        "Efficient WebSocket handling",
+        "Proper serial port connection cleanup",
+        "Use appropriate aggregate boundaries",
+        "Implement caching where necessary"
+    ],
+    "security": [
+        "Validate all user inputs",
+        "Handle serial port operations safely",
+        "Sanitize data",
+        "Manage serial port permissions",
+        "Validate domain invariants",
+        "Implement proper access control"
+    ]
 }

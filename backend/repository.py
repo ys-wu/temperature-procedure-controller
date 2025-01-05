@@ -1,17 +1,16 @@
 import json
 import os
 from abc import ABC, abstractmethod
-from typing import List
 from model import Procedure, ProcedureStep, Temperature
 
 
 class IProcedureRepository(ABC):
     @abstractmethod
-    def save_all(self, procedures: List[Procedure]) -> None:
+    def save_all(self, procedures: list[Procedure]) -> None:
         pass
 
     @abstractmethod
-    def load_all(self) -> List[Procedure]:
+    def load_all(self) -> list[Procedure]:
         pass
 
     @abstractmethod
@@ -35,11 +34,11 @@ class JsonProcedureRepository(IProcedureRepository):
     def _ensure_data_directory(self) -> None:
         os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
 
-    def _save_procedures(self, procedures: List[dict]) -> None:
+    def _save_procedures(self, procedures: list[dict]) -> None:
         with open(self.file_path, "w") as f:
             json.dump(procedures, f, indent=2)
 
-    def _load_procedures(self) -> List[dict]:
+    def _load_procedures(self) -> list[dict]:
         if not os.path.exists(self.file_path):
             return []
         try:
@@ -57,11 +56,11 @@ class JsonProcedureRepository(IProcedureRepository):
         ]
         return Procedure(name=proc_dict["name"], steps=steps, id=proc_dict["id"])
 
-    def save_all(self, procedures: List[Procedure]) -> None:
+    def save_all(self, procedures: list[Procedure]) -> None:
         procedures_dict = [dict(proc) for proc in procedures]
         self._save_procedures(procedures_dict)
 
-    def load_all(self) -> List[Procedure]:
+    def load_all(self) -> list[Procedure]:
         procedures_dict = self._load_procedures()
         return [self._dict_to_procedure(proc) for proc in procedures_dict]
 

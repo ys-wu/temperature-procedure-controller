@@ -1,8 +1,45 @@
 import React, { useEffect, useState } from 'react';
-import { Card, List, Typography, Tag, Spin, Row, Col, Button, Form, Input, Space, Modal, InputNumber, Popconfirm } from 'antd';
-import { PlusOutlined, MinusCircleOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import {
+  Card,
+  List,
+  Typography,
+  Tag,
+  Spin,
+  Row,
+  Col,
+  Button,
+  Form,
+  Input,
+  Space,
+  Modal,
+  InputNumber,
+  Popconfirm,
+} from 'antd';
+import {
+  PlusOutlined,
+  MinusCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlayCircleOutlined,
+  StopOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  LoadingOutlined,
+  CloseCircleOutlined,
+} from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchProcedures, selectProcedure, createProcedure, deleteProcedure, updateProcedure, type TemperatureProcedure as TProcedure } from '../store/slices/procedureSlice';
+import {
+  fetchProcedures,
+  selectProcedure,
+  createProcedure,
+  deleteProcedure,
+  updateProcedure,
+  startProcedure,
+  stopProcedure,
+  type TemperatureProcedure as TProcedure,
+  type CreateProcedurePayload,
+} from '../store/slices/procedureSlice';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 const { Title, Text } = Typography;
 
@@ -10,6 +47,43 @@ interface ProcedureFormValues {
   name: string;
   steps: Array<{ temperature: number; duration: number }>;
 }
+
+const transformFormValues = (values: ProcedureFormValues): CreateProcedurePayload => {
+  return {
+    name: values.name,
+    steps: values.steps.map(step => ({
+      ...step,
+      status: 'queued' as const,
+      elapsed_time: 0
+    }))
+  };
+};
+
+const getStepStatusIcon = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
+    case 'running':
+      return <LoadingOutlined style={{ color: '#1890ff' }} />;
+    case 'failed':
+      return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />;
+    default:
+      return <ClockCircleOutlined style={{ color: '#d9d9d9' }} />;
+  }
+};
+
+const getStepStatusColor = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return 'success';
+    case 'running':
+      return 'processing';
+    case 'failed':
+      return 'error';
+    default:
+      return 'default';
+  }
+};
 
 const TemperatureProcedure: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -19,6 +93,8 @@ const TemperatureProcedure: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingProcedure, setEditingProcedure] = useState<TProcedure | null>(null);
   const [form] = Form.useForm();
+
+  useWebSocket();
 
   useEffect(() => {
     dispatch(fetchProcedures());
@@ -46,10 +122,11 @@ const TemperatureProcedure: React.FC = () => {
   };
 
   const handleSubmit = async (values: ProcedureFormValues) => {
+    const transformedValues = transformFormValues(values);
     if (editingProcedure) {
-      await dispatch(updateProcedure({ id: editingProcedure.id, procedure: values }));
+      await dispatch(updateProcedure({ id: editingProcedure.id, procedure: transformedValues }));
     } else {
-      await dispatch(createProcedure(values));
+      await dispatch(createProcedure(transformedValues));
     }
     setIsModalVisible(false);
     setEditingProcedure(null);
@@ -64,6 +141,22 @@ const TemperatureProcedure: React.FC = () => {
   const handleEdit = (e: React.MouseEvent, procedure: TProcedure) => {
     e.stopPropagation();
     showModal(procedure);
+  };
+
+  const handleStartProcedure = async (procedureId: string) => {
+    try {
+      await dispatch(startProcedure(procedureId)).unwrap();
+    } catch (error) {
+      console.error('Error starting procedure:', error);
+    }
+  };
+
+  const handleStopProcedure = async () => {
+    try {
+      await dispatch(stopProcedure()).unwrap();
+    } catch (error) {
+      console.error('Error stopping procedure:', error);
+    }
   };
 
   if (loading) {
@@ -125,14 +218,49 @@ const TemperatureProcedure: React.FC = () => {
           </Col>
           <Col span={16}>
             {selectedProcedure ? (
-              <Card title={selectedProcedure.name}>
+              <Card
+                title={selectedProcedure.name}
+                extra={
+                  <>
+                    {selectedProcedure.status === 'running' ? (
+                      <Button
+                        type="primary"
+                        danger
+                        icon={<StopOutlined />}
+                        onClick={handleStopProcedure}
+                      >
+                        Stop
+                      </Button>
+                    ) : (
+                      <Button
+                        type="primary"
+                        icon={<PlayCircleOutlined />}
+                        onClick={() => handleStartProcedure(selectedProcedure.id)}
+                      >
+                        Start
+                      </Button>
+                    )}
+                  </>
+                }
+              >
                 <List
                   dataSource={selectedProcedure.steps}
                   renderItem={(step, index) => (
                     <List.Item>
-                      <Text strong>Step {index + 1}:</Text>
-                      <Tag color="blue">{step.temperature}°C</Tag>
-                      <Tag color="green">{step.duration} seconds</Tag>
+                      <Space>
+                        {getStepStatusIcon(step.status)}
+                        <Text strong>Step {index + 1}:</Text>
+                        <Tag color="blue">{step.temperature}°C</Tag>
+                        <Tag color="green">{step.duration} seconds</Tag>
+                        {step.status === 'running' && (
+                          <Tag color={getStepStatusColor(step.status)}>
+                            {step.elapsed_time}s / {step.duration}s
+                          </Tag>
+                        )}
+                        <Tag color={getStepStatusColor(step.status)}>
+                          {step.status}
+                        </Tag>
+                      </Space>
                     </List.Item>
                   )}
                 />

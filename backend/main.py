@@ -4,11 +4,12 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from repository import JsonProcedureRepository
 from serial_device import MockSerialDevice, Temperature
-from services import ProcedureService
+from services import ProcedureService, ProcedureExecutionService
 
 device = MockSerialDevice(25, 25)
 procedure_repository = JsonProcedureRepository()
 procedure_service = ProcedureService(procedure_repository)
+procedure_execution_service = ProcedureExecutionService(procedure_repository, device)
 
 app = FastAPI()
 
@@ -85,6 +86,21 @@ def update_procedure(procedure_id: str, request: CreateProcedureRequest):
     return procedure_service.update(procedure_id, request.name, steps)
 
 
+@app.post("/procedures/{procedure_id}/start")
+async def start_procedure(procedure_id: str):
+    return await procedure_execution_service.start_procedure(procedure_id)
+
+
+@app.post("/procedures/stop")
+async def stop_procedure():
+    return await procedure_execution_service.stop_procedure()
+
+
+@app.get("/procedures/active")
+def get_active_procedure():
+    return procedure_execution_service.get_active_procedure()
+
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -106,7 +122,13 @@ class ConnectionManager:
             while True:
                 if websocket.client_state.value == 3:  # WebSocket.DISCONNECTED
                     break
-                await websocket.send_json(device.status)
+
+                status_data = device.status
+                active_procedure = procedure_execution_service.get_active_procedure()
+                if active_procedure:
+                    status_data["active_procedure"] = active_procedure
+
+                await websocket.send_json(status_data)
                 await asyncio.sleep(1)
         except WebSocketDisconnect:
             print("Client disconnected normally")

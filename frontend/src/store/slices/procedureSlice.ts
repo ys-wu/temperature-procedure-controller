@@ -2,18 +2,22 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { HTTP_BASE_URL } from '../../constants';
 
-interface ProcedureStep {
+export type ProcedureStep = {
   temperature: number;
   duration: number;
-}
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  elapsed_time: number;
+};
 
-export interface TemperatureProcedure {
+export type TemperatureProcedure = {
   id: string;
   name: string;
   steps: ProcedureStep[];
-}
+  status: 'idle' | 'running' | 'completed' | 'failed' | 'stopped';
+  current_step: number;
+};
 
-interface CreateProcedurePayload {
+export interface CreateProcedurePayload {
   name: string;
   steps: ProcedureStep[];
 }
@@ -67,12 +71,47 @@ export const updateProcedure = createAsyncThunk(
   }
 );
 
+export const startProcedure = createAsyncThunk(
+  'procedures/startProcedure',
+  async (procedureId: string) => {
+    const { data } = await axios.post(`${HTTP_BASE_URL}/procedures/${procedureId}/start`);
+    return data;
+  }
+);
+
+export const stopProcedure = createAsyncThunk(
+  'procedures/stopProcedure',
+  async () => {
+    const { data } = await axios.post(`${HTTP_BASE_URL}/procedures/stop`);
+    return data;
+  }
+);
+
+interface WebSocketUpdate {
+  temperature_setpoint: number;
+  temperature_actual: number;
+  temperature_status: string;
+  active_procedure?: TemperatureProcedure;
+}
+
 const procedureSlice = createSlice({
   name: 'procedures',
   initialState,
   reducers: {
     selectProcedure: (state, action: PayloadAction<TemperatureProcedure>) => {
       state.selectedProcedure = action.payload;
+    },
+    updateFromWebSocket: (state, action: PayloadAction<WebSocketUpdate>) => {
+      if (action.payload.active_procedure) {
+        const procedure = action.payload.active_procedure;
+        const index = state.procedures.findIndex(p => p.id === procedure.id);
+        if (index !== -1) {
+          state.procedures[index] = procedure;
+          if (state.selectedProcedure?.id === procedure.id) {
+            state.selectedProcedure = procedure;
+          }
+        }
+      }
     },
   },
   extraReducers: (builder) => {
@@ -137,9 +176,49 @@ const procedureSlice = createSlice({
       .addCase(updateProcedure.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to update procedure';
+      })
+      .addCase(startProcedure.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(startProcedure.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.procedure) {
+          const index = state.procedures.findIndex(p => p.id === action.payload.procedure.id);
+          if (index !== -1) {
+            state.procedures[index] = action.payload.procedure;
+            if (state.selectedProcedure?.id === action.payload.procedure.id) {
+              state.selectedProcedure = action.payload.procedure;
+            }
+          }
+        }
+      })
+      .addCase(startProcedure.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to start procedure';
+      })
+      .addCase(stopProcedure.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(stopProcedure.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.procedure) {
+          const index = state.procedures.findIndex(p => p.id === action.payload.procedure.id);
+          if (index !== -1) {
+            state.procedures[index] = action.payload.procedure;
+            if (state.selectedProcedure?.id === action.payload.procedure.id) {
+              state.selectedProcedure = action.payload.procedure;
+            }
+          }
+        }
+      })
+      .addCase(stopProcedure.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to stop procedure';
       });
   },
 });
 
-export const { selectProcedure } = procedureSlice.actions;
+export const { selectProcedure, updateFromWebSocket } = procedureSlice.actions;
 export default procedureSlice.reducer; 
