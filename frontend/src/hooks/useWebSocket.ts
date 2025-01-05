@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { useAppDispatch } from '../store/hooks';
 import { updateFromWebSocket } from '../store/slices/procedureSlice';
-import { WS_BASE_URL } from '../constants';
+import { API_URLS } from '../constants';
 
 export const useWebSocket = () => {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    const ws = new WebSocket(`${WS_BASE_URL}/ws`);
+    const ws = new WebSocket(API_URLS.websocket);
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -18,12 +18,20 @@ export const useWebSocket = () => {
       console.error('WebSocket error:', error);
     };
 
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
+    // Cleanup function to properly close WebSocket
+    const cleanup = () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
 
+    // Add cleanup to window unload event
+    window.addEventListener('beforeunload', cleanup);
+
+    // Return cleanup function for useEffect
     return () => {
-      ws.close();
+      window.removeEventListener('beforeunload', cleanup);
+      cleanup();
     };
   }, [dispatch]);
 }; 

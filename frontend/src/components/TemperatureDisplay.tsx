@@ -22,7 +22,7 @@ const TemperatureDisplay: React.FC = () => {
       console.log('Attempting to connect to WebSocket...');
 
       try {
-        ws = new WebSocket(API_URLS.ws.status);
+        ws = new WebSocket(API_URLS.websocket);
 
         ws.onopen = () => {
           console.log('WebSocket connection established');

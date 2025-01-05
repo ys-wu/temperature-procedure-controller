@@ -1,19 +1,26 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
+import { stopProcedure } from '../store/slices/procedureSlice';
+import { useAppDispatch } from '../store/hooks';
 
 export const usePreventExit = () => {
+  const dispatch = useAppDispatch();
   const selectedProcedure = useSelector((state: RootState) => state.procedures.selectedProcedure);
   const isProcedureRunning = selectedProcedure?.status === 'running';
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isProcedureRunning) {
-        // Cancel the event and show confirmation dialog
+        // Show a confirmation dialog
+        const message = 'A procedure is currently running. Are you sure you want to leave? The procedure will be stopped.';
         e.preventDefault();
-        // Chrome requires returnValue to be set
-        e.returnValue = '';
-        return '';
+        e.returnValue = message;
+
+        // Attempt to stop the procedure
+        dispatch(stopProcedure());
+
+        return message;
       }
     };
 
@@ -24,5 +31,5 @@ export const usePreventExit = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isProcedureRunning]);
+  }, [isProcedureRunning, dispatch]);
 }; 
