@@ -197,6 +197,7 @@ const TemperatureProcedure: React.FC = () => {
             <List
               bordered
               dataSource={procedures}
+              locale={{ emptyText: 'No procedures yet. Click "New Procedure" to create one.' }}
               renderItem={(procedure) => (
                 <List.Item
                   onClick={() => handleProcedureSelect(procedure)}
@@ -284,9 +285,9 @@ const TemperatureProcedure: React.FC = () => {
                   )}
                 />
               </Card>
-            ) : (
+            ) : procedures.length > 0 ? (
               <Text>Select a procedure to view details</Text>
-            )}
+            ) : null}
           </Col>
         </Row>
       </Card>
