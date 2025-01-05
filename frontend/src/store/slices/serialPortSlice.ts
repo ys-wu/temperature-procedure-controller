@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { SERIAL_PORTS_URL, SELECT_SERIAL_PORT_URL } from '../../constants';
+import { API_URLS } from '../../constants';
 
 interface SerialPortState {
   availablePorts: string[];
@@ -16,19 +16,19 @@ const initialState: SerialPortState = {
   error: null,
 };
 
-export const fetchPorts = createAsyncThunk(
+export const fetchSerialPorts = createAsyncThunk(
   'serialPort/fetchPorts',
   async () => {
-    const { data } = await axios.get(SERIAL_PORTS_URL);
+    const { data } = await axios.get(API_URLS.serialPort.list);
     return data.ports;
   }
 );
 
-export const selectPort = createAsyncThunk(
+export const selectSerialPort = createAsyncThunk(
   'serialPort/selectPort',
   async (port: string) => {
-    await axios.post(SELECT_SERIAL_PORT_URL, { port });
-    return port;
+    const { data } = await axios.post(API_URLS.serialPort.select, { port });
+    return data;
   }
 );
 
@@ -38,27 +38,27 @@ const serialPortSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPorts.pending, (state) => {
+      .addCase(fetchSerialPorts.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchPorts.fulfilled, (state, action: PayloadAction<string[]>) => {
+      .addCase(fetchSerialPorts.fulfilled, (state, action: PayloadAction<string[]>) => {
         state.loading = false;
         state.availablePorts = action.payload;
       })
-      .addCase(fetchPorts.rejected, (state, action) => {
+      .addCase(fetchSerialPorts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch ports';
       })
-      .addCase(selectPort.pending, (state) => {
+      .addCase(selectSerialPort.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(selectPort.fulfilled, (state, action: PayloadAction<string>) => {
+      .addCase(selectSerialPort.fulfilled, (state, action: PayloadAction<string>) => {
         state.loading = false;
         state.selectedPort = action.payload;
       })
-      .addCase(selectPort.rejected, (state, action) => {
+      .addCase(selectSerialPort.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to select port';
       });

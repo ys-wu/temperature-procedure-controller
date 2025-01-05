@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Card, Statistic, Row, Col } from 'antd';
-import { WS_URL } from '../constants';
+import { API_URLS } from '../constants';
 import { setTemperatureSetpoint, setActualTemperature } from '../store/slices/temperatureSlice';
 import { RootState } from '../store';
 
 const TemperatureDisplay: React.FC = () => {
   const dispatch = useDispatch();
-  const { setpoint, actualTemp } = useSelector((state: RootState) => state.temperature);
+  const { setpoint, actual } = useSelector((state: RootState) => state.temperature);
 
   useEffect(() => {
     let ws: WebSocket;
@@ -22,7 +22,7 @@ const TemperatureDisplay: React.FC = () => {
       console.log('Attempting to connect to WebSocket...');
 
       try {
-        ws = new WebSocket(WS_URL);
+        ws = new WebSocket(API_URLS.ws.status);
 
         ws.onopen = () => {
           console.log('WebSocket connection established');
@@ -83,7 +83,7 @@ const TemperatureDisplay: React.FC = () => {
         <Col span={12}>
           <Statistic
             title="Actual Temperature"
-            value={actualTemp !== null ? actualTemp : '-'}
+            value={actual !== null ? actual : '-'}
             suffix="°C"
             precision={1}
           />

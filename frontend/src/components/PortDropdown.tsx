@@ -1,36 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, Dropdown, message, Space } from 'antd';
+import { Button, Dropdown, Space } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { RootState, AppDispatch } from '../store';
-import { fetchPorts, selectPort } from '../store/slices/serialPortSlice';
+import { fetchSerialPorts, selectSerialPort } from '../store/slices/serialPortSlice';
 
 const initialPortPlaceholder = 'COM Port';
 
 const PortDropdown: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { availablePorts, selectedPort, loading, error } = useSelector(
+  const { availablePorts, selectedPort, loading } = useSelector(
     (state: RootState) => state.serialPort
   );
+  const [selectedItem, setSelectedItem] = useState<string>(initialPortPlaceholder);
 
   useEffect(() => {
-    void dispatch(fetchPorts());
+    dispatch(fetchSerialPorts());
   }, [dispatch]);
 
   useEffect(() => {
-    if (error) {
-      message.error(error);
+    if (selectedPort) {
+      setSelectedItem(selectedPort);
     }
-  }, [error]);
+  }, [selectedPort]);
 
-  const handleMenuClick: MenuProps['onClick'] = async (e) => {
-    try {
-      await dispatch(selectPort(e.key as string)).unwrap();
-      message.success(`Port ${e.key} selected successfully`);
-    } catch (error) {
-      // Error handling is done through the error state in the slice
-    }
+  const handleMenuClick: MenuProps['onClick'] = (e) => {
+    const port = e.key.toString();
+    setSelectedItem(port);
+    dispatch(selectSerialPort(port));
   };
 
   const items: MenuProps['items'] = availablePorts.map((port) => ({
@@ -38,25 +36,21 @@ const PortDropdown: React.FC = () => {
     key: port,
   }));
 
-  const menuProps = {
-    items,
-    onClick: handleMenuClick,
-  };
-
   return (
-    <Space wrap>
-      <Dropdown menu={menuProps}>
-        <Button loading={loading}>
-          <Space>
-            {selectedPort || initialPortPlaceholder}
-            <DownOutlined />
-          </Space>
-        </Button>
-      </Dropdown>
-      <Button onClick={() => void dispatch(fetchPorts())} loading={loading}>
-        Refresh Ports
+    <Dropdown
+      menu={{
+        items,
+        onClick: handleMenuClick,
+      }}
+      disabled={loading}
+    >
+      <Button>
+        <Space>
+          {selectedItem}
+          <DownOutlined />
+        </Space>
       </Button>
-    </Space>
+    </Dropdown>
   );
 };
 

@@ -1,17 +1,17 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { SET_TEMPERATURE_URL } from '../../constants';
+import { API_URLS } from '../../constants';
 
 interface TemperatureState {
   setpoint: number | null;
-  actualTemp: number | null;
+  actual: number | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: TemperatureState = {
   setpoint: null,
-  actualTemp: null,
+  actual: null,
   loading: false,
   error: null,
 };
@@ -19,10 +19,8 @@ const initialState: TemperatureState = {
 export const setTemperature = createAsyncThunk(
   'temperature/setTemperature',
   async (temperature: number) => {
-    const response = await axios.post(SET_TEMPERATURE_URL, {
-      temperature,
-    });
-    return response.data;
+    const { data } = await axios.post(API_URLS.serialPort.setTemperature, { temperature });
+    return data;
   }
 );
 
@@ -34,7 +32,7 @@ const temperatureSlice = createSlice({
       state.setpoint = action.payload;
     },
     setActualTemperature: (state, action: PayloadAction<number | null>) => {
-      state.actualTemp = action.payload;
+      state.actual = action.payload;
     },
   },
   extraReducers: (builder) => {
