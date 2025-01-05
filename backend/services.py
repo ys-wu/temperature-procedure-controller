@@ -111,12 +111,15 @@ class ProcedureExecutionService:
         self._active_procedure: Procedure | None = None
         self._task: asyncio.Task | None = None
         self._should_stop = False
+        self._procedure_status = ProcedureStatus.IDLE
 
     def get_active_procedure(
         self,
     ) -> dict[str, str | int | list[dict[str, float | int | str]]] | None:
         if self._active_procedure:
-            return dict(self._active_procedure)
+            procedure_dict = dict(self._active_procedure)
+            procedure_dict["status"] = self._procedure_status.value
+            return procedure_dict
         return None
 
     async def start_procedure(self, procedure_id: str) -> ProcedureResponse:
@@ -138,12 +141,16 @@ class ProcedureExecutionService:
             }
 
         self._active_procedure = procedure
-        self._active_procedure.status = ProcedureStatus.RUNNING
+        self._procedure_status = ProcedureStatus.RUNNING
         self._active_procedure.current_step = 0
         self._should_stop = False
         self._task = asyncio.create_task(self._run_procedure())
 
-        return {"success": True, "procedure": dict(procedure), "message": ""}
+        return {
+            "success": True,
+            "procedure": self.get_active_procedure(),
+            "message": "",
+        }
 
     async def stop_procedure(self) -> ProcedureResponse:
         if not self._active_procedure:
@@ -172,8 +179,8 @@ class ProcedureExecutionService:
             if current_step.status == StepStatus.RUNNING:
                 current_step.status = StepStatus.QUEUED
 
-        self._active_procedure.status = ProcedureStatus.STOPPED
-        result = dict(self._active_procedure)
+        self._procedure_status = ProcedureStatus.STOPPED
+        result = self.get_active_procedure()
         self._active_procedure = None
         self._task = None
         return {"success": True, "procedure": result, "message": ""}
@@ -200,11 +207,11 @@ class ProcedureExecutionService:
                 step.status = StepStatus.COMPLETED
 
             if not self._should_stop:
-                self._active_procedure.status = ProcedureStatus.COMPLETED
+                self._procedure_status = ProcedureStatus.COMPLETED
         except Exception as e:
             print(f"Error running procedure: {e}")
             if self._active_procedure:
-                self._active_procedure.status = ProcedureStatus.FAILED
+                self._procedure_status = ProcedureStatus.FAILED
                 if self._active_procedure.current_step >= 0:
                     current_step = self._active_procedure.steps[
                         self._active_procedure.current_step
