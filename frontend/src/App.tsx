@@ -4,10 +4,13 @@ import PortDropdown from './components/PortDropdown';
 import TemperatureDisplay from './components/TemperatureDisplay';
 import TemperatureProcedure from './components/TemperatureProcedure';
 import ManualControl from './components/ManualControl';
+import { usePreventExit } from './hooks/usePreventExit';
 
 const { Text } = Typography;
 
 function App() {
+  usePreventExit();
+
   return (
     <div style={{ margin: '24px', maxWidth: '1200px', marginLeft: 'auto', marginRight: 'auto' }}>
       <h1 style={{ marginBottom: '24px' }}>Temperature Procedure Controller</h1>
