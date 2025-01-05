@@ -100,18 +100,25 @@ class Procedure:
     name: str
     steps: list[ProcedureStep]
     status: ProcedureStatus
-    current_step: int
+    _current_step: int
 
     def __init__(self, name: str, steps: list[ProcedureStep], id: str = None):
         self.id = id or str(uuid.uuid4())
         self.name = name
         self.steps = steps
         self.status = ProcedureStatus.IDLE
-        self.current_step = -1
+        self._current_step = -1
+
+    @property
+    def current_step(self) -> int:
+        return self._current_step
+
+    @current_step.setter
+    def current_step(self, value: int) -> None:
+        self._current_step = value
 
     def __iter__(self):
         yield ("id", self.id)
         yield ("name", self.name)
         yield ("steps", [dict(step) for step in self.steps])
         yield ("status", self.status.value)
-        yield ("current_step", self.current_step)
