@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { HTTP_BASE_URL } from '../../constants';
+import { API_URLS } from '../../constants';
 
 export type ProcedureStep = {
   temperature: number;
@@ -22,24 +22,17 @@ export interface CreateProcedurePayload {
   steps: ProcedureStep[];
 }
 
-interface ProcedureState {
-  procedures: TemperatureProcedure[];
-  selectedProcedure: TemperatureProcedure | null;
-  loading: boolean;
-  error: string | null;
+interface WebSocketUpdate {
+  temperature_setpoint: number;
+  temperature_actual: number;
+  temperature_status: string;
+  active_procedure?: TemperatureProcedure;
 }
-
-const initialState: ProcedureState = {
-  procedures: [],
-  selectedProcedure: null,
-  loading: false,
-  error: null,
-};
 
 export const fetchProcedures = createAsyncThunk(
   'procedures/fetchProcedures',
   async () => {
-    const { data } = await axios.get(`${HTTP_BASE_URL}/procedures`);
+    const { data } = await axios.get(API_URLS.procedures.list);
     return data.procedures;
   }
 );
@@ -47,15 +40,21 @@ export const fetchProcedures = createAsyncThunk(
 export const createProcedure = createAsyncThunk(
   'procedures/createProcedure',
   async (procedure: CreateProcedurePayload) => {
-    const { data } = await axios.post(`${HTTP_BASE_URL}/procedures`, procedure);
-    return data;
+    const { data } = await axios.post(API_URLS.procedures.create, procedure);
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to create procedure');
+    }
+    return data.procedure;
   }
 );
 
 export const deleteProcedure = createAsyncThunk(
   'procedures/deleteProcedure',
   async (procedureId: string) => {
-    await axios.delete(`${HTTP_BASE_URL}/procedures/${procedureId}`);
+    const { data } = await axios.delete(API_URLS.procedures.delete(procedureId));
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to delete procedure');
+    }
     return procedureId;
   }
 );
@@ -63,36 +62,42 @@ export const deleteProcedure = createAsyncThunk(
 export const updateProcedure = createAsyncThunk(
   'procedures/updateProcedure',
   async ({ id, procedure }: { id: string; procedure: CreateProcedurePayload }) => {
-    const { data } = await axios.put(`${HTTP_BASE_URL}/procedures/${id}`, procedure);
-    if (!data.id) {
+    const { data } = await axios.put(API_URLS.procedures.update(id), procedure);
+    if (!data.success) {
       throw new Error(data.message || 'Failed to update procedure');
     }
-    return data;
+    return data.procedure;
   }
 );
 
 export const startProcedure = createAsyncThunk(
   'procedures/startProcedure',
   async (procedureId: string) => {
-    const { data } = await axios.post(`${HTTP_BASE_URL}/procedures/${procedureId}/start`);
-    return data;
+    const { data } = await axios.post(API_URLS.procedures.start(procedureId));
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to start procedure');
+    }
+    return data.procedure;
   }
 );
 
 export const stopProcedure = createAsyncThunk(
   'procedures/stopProcedure',
   async () => {
-    const { data } = await axios.post(`${HTTP_BASE_URL}/procedures/stop`);
-    return data;
+    const { data } = await axios.post(API_URLS.procedures.stop);
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to stop procedure');
+    }
+    return data.procedure;
   }
 );
 
-interface WebSocketUpdate {
-  temperature_setpoint: number;
-  temperature_actual: number;
-  temperature_status: string;
-  active_procedure?: TemperatureProcedure;
-}
+const initialState = {
+  procedures: [] as TemperatureProcedure[],
+  selectedProcedure: null as TemperatureProcedure | null,
+  loading: false,
+  error: null as string | null,
+};
 
 const procedureSlice = createSlice({
   name: 'procedures',
@@ -183,12 +188,12 @@ const procedureSlice = createSlice({
       })
       .addCase(startProcedure.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload.procedure) {
-          const index = state.procedures.findIndex(p => p.id === action.payload.procedure.id);
+        if (action.payload) {
+          const index = state.procedures.findIndex(p => p.id === action.payload.id);
           if (index !== -1) {
-            state.procedures[index] = action.payload.procedure;
-            if (state.selectedProcedure?.id === action.payload.procedure.id) {
-              state.selectedProcedure = action.payload.procedure;
+            state.procedures[index] = action.payload;
+            if (state.selectedProcedure?.id === action.payload.id) {
+              state.selectedProcedure = action.payload;
             }
           }
         }
@@ -203,12 +208,12 @@ const procedureSlice = createSlice({
       })
       .addCase(stopProcedure.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload.procedure) {
-          const index = state.procedures.findIndex(p => p.id === action.payload.procedure.id);
+        if (action.payload) {
+          const index = state.procedures.findIndex(p => p.id === action.payload.id);
           if (index !== -1) {
-            state.procedures[index] = action.payload.procedure;
-            if (state.selectedProcedure?.id === action.payload.procedure.id) {
-              state.selectedProcedure = action.payload.procedure;
+            state.procedures[index] = action.payload;
+            if (state.selectedProcedure?.id === action.payload.id) {
+              state.selectedProcedure = action.payload;
             }
           }
         }
