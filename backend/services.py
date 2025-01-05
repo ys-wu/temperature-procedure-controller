@@ -4,7 +4,14 @@ from typing import TypedDict, TYPE_CHECKING
 if TYPE_CHECKING:
     from services import ProcedureExecutionService
 
-from model import Procedure, ProcedureStep, Temperature, ProcedureStatus, StepStatus
+from model import (
+    Procedure,
+    ProcedureStep,
+    Temperature,
+    ProcedureStatus,
+    StepStatus,
+    RuntimeProcedureState,
+)
 from repository import IProcedureRepository
 from serial_device import SerialDevice
 
@@ -59,14 +66,40 @@ class ProcedureService:
         self,
     ) -> dict[str, list[dict[str, str | int | list[dict[str, float | int | str]]]]]:
         procedures = self._repository.load_all()
-        return {"procedures": [dict(procedure) for procedure in procedures]}
+        if self._execution_service:
+            active_procedure = self._execution_service.get_active_procedure()
+            if active_procedure:
+                # Update the active procedure with runtime state
+                procedures = [
+                    active_procedure.procedure
+                    if p.id == active_procedure.procedure.id
+                    else p
+                    for p in procedures
+                ]
+        return {"procedures": [self._add_runtime_state(p) for p in procedures]}
+
+    def _add_runtime_state(self, procedure: Procedure) -> dict:
+        if (
+            self._execution_service
+            and self._execution_service.get_active_procedure()
+            and self._execution_service.get_active_procedure().procedure.id
+            == procedure.id
+        ):
+            return self._execution_service.get_active_procedure().to_dict()
+        else:
+            runtime_state = RuntimeProcedureState(procedure)
+            return runtime_state.to_dict()
 
     def create(self, name: str, steps: list[tuple[float, int]]) -> ProcedureResponse:
         try:
             procedure_steps = self._create_procedure_steps(steps)
             new_procedure = Procedure(name, procedure_steps)
             self._repository.add(new_procedure)
-            return {"success": True, "procedure": dict(new_procedure), "message": ""}
+            return {
+                "success": True,
+                "procedure": self._add_runtime_state(new_procedure),
+                "message": "",
+            }
         except Exception as e:
             return {
                 "success": False,
@@ -103,7 +136,7 @@ class ProcedureService:
         if self._repository.update(updated_procedure):
             return {
                 "success": True,
-                "procedure": dict(updated_procedure),
+                "procedure": self._add_runtime_state(updated_procedure),
                 "message": "",
             }
         return {
@@ -123,30 +156,14 @@ class ProcedureService:
                 "procedure": None,
             }
 
-        # Reset all steps to queued state
-        for step in procedure.steps:
-            step.status = StepStatus.QUEUED
-            step.elapsed_time = 0
-
-        # Reset procedure status to idle
-        procedure.status = ProcedureStatus.IDLE
-        procedure.current_step = -1
-
         # Reset the active procedure in execution service if it exists
         if self._execution_service:
             self._execution_service.reset_active_procedure()
 
-        # Update the procedure in the repository
-        if self._repository.update(procedure):
-            return {
-                "success": True,
-                "procedure": dict(procedure),
-                "message": "Procedure reset successfully",
-            }
         return {
-            "success": False,
-            "message": "Failed to reset procedure",
-            "procedure": None,
+            "success": True,
+            "procedure": self._add_runtime_state(procedure),
+            "message": "Procedure reset successfully",
         }
 
 
@@ -154,23 +171,15 @@ class ProcedureExecutionService:
     def __init__(self, repository: IProcedureRepository, device: SerialDevice):
         self._repository = repository
         self._device = device
-        self._active_procedure: Procedure | None = None
+        self._active_procedure: RuntimeProcedureState | None = None
         self._task: asyncio.Task | None = None
         self._should_stop = False
-        self._procedure_status = ProcedureStatus.IDLE
 
-    def get_active_procedure(
-        self,
-    ) -> dict[str, str | int | list[dict[str, float | int | str]]] | None:
-        if self._active_procedure:
-            procedure_dict = dict(self._active_procedure)
-            procedure_dict["status"] = self._procedure_status.value
-            return procedure_dict
-        return None
+    def get_active_procedure(self) -> RuntimeProcedureState | None:
+        return self._active_procedure
 
     def reset_active_procedure(self) -> None:
         self._active_procedure = None
-        self._procedure_status = ProcedureStatus.IDLE
         self._task = None
         self._should_stop = False
 
@@ -192,15 +201,15 @@ class ProcedureExecutionService:
                 "procedure": None,
             }
 
-        self._active_procedure = procedure
-        self._procedure_status = ProcedureStatus.RUNNING
+        self._active_procedure = RuntimeProcedureState(procedure)
+        self._active_procedure.status = ProcedureStatus.RUNNING
         self._active_procedure.current_step = 0
         self._should_stop = False
         self._task = asyncio.create_task(self._run_procedure())
 
         return {
             "success": True,
-            "procedure": self.get_active_procedure(),
+            "procedure": self._active_procedure.to_dict(),
             "message": "",
         }
 
@@ -225,27 +234,32 @@ class ProcedureExecutionService:
 
         # Mark current step as incomplete if it was running
         if self._active_procedure.current_step >= 0:
-            current_step = self._active_procedure.steps[
+            current_state = self._active_procedure.step_states[
                 self._active_procedure.current_step
             ]
-            if current_step.status == StepStatus.RUNNING:
-                current_step.status = StepStatus.QUEUED
+            if current_state.status == StepStatus.RUNNING:
+                current_state.status = StepStatus.QUEUED
 
-        self._procedure_status = ProcedureStatus.STOPPED
-        result = self.get_active_procedure()
+        self._active_procedure.status = ProcedureStatus.STOPPED
+        result = self._active_procedure.to_dict()
         self._active_procedure = None
         self._task = None
         return {"success": True, "procedure": result, "message": ""}
 
     async def _run_procedure(self) -> None:
         try:
-            for i, step in enumerate(self._active_procedure.steps):
+            for i, (step, state) in enumerate(
+                zip(
+                    self._active_procedure.procedure.steps,
+                    self._active_procedure.step_states,
+                )
+            ):
                 if self._should_stop:
                     return
 
                 self._active_procedure.current_step = i
-                step.status = StepStatus.RUNNING
-                step.elapsed_time = 0
+                state.status = StepStatus.RUNNING
+                state.elapsed_time = 0
 
                 await self._device.set_temperature(step.temperature)
 
@@ -254,21 +268,21 @@ class ProcedureExecutionService:
                         return
 
                     await asyncio.sleep(1)
-                    step.elapsed_time += 1
+                    state.elapsed_time += 1
 
-                step.status = StepStatus.COMPLETED
+                state.status = StepStatus.COMPLETED
 
             if not self._should_stop:
-                self._procedure_status = ProcedureStatus.COMPLETED
+                self._active_procedure.status = ProcedureStatus.COMPLETED
         except Exception as e:
             print(f"Error running procedure: {e}")
             if self._active_procedure:
-                self._procedure_status = ProcedureStatus.FAILED
+                self._active_procedure.status = ProcedureStatus.FAILED
                 if self._active_procedure.current_step >= 0:
-                    current_step = self._active_procedure.steps[
+                    current_state = self._active_procedure.step_states[
                         self._active_procedure.current_step
                     ]
-                    current_step.status = StepStatus.FAILED
+                    current_state.status = StepStatus.FAILED
         finally:
             if self._task and self._task.done():
                 self._task = None

@@ -134,7 +134,7 @@ class ConnectionManager:
                 status_data = device.status
                 active_procedure = procedure_execution_service.get_active_procedure()
                 if active_procedure:
-                    status_data["active_procedure"] = active_procedure
+                    status_data["active_procedure"] = active_procedure.to_dict()
 
                 await websocket.send_json(status_data)
                 await asyncio.sleep(1)

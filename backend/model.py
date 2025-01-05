@@ -71,20 +71,14 @@ class StepStatus(Enum):
 class ProcedureStep:
     temperature: Temperature
     duration: int
-    status: StepStatus
-    elapsed_time: int
 
     def __init__(self, temperature: Temperature, duration: int):
         self.temperature = temperature
         self.duration = duration
-        self.status = StepStatus.QUEUED
-        self.elapsed_time = 0
 
     def __iter__(self):
         yield ("temperature", self.temperature.float_celsius)
         yield ("duration", self.duration)
-        yield ("status", self.status.value)
-        yield ("elapsed_time", self.elapsed_time)
 
 
 class ProcedureStatus(Enum):
@@ -95,25 +89,46 @@ class ProcedureStatus(Enum):
     STOPPED = "stopped"
 
 
+@dataclass
+class RuntimeStepState:
+    status: StepStatus = StepStatus.QUEUED
+    elapsed_time: int = 0
+
+
+class RuntimeProcedureState:
+    def __init__(self, procedure: "Procedure"):
+        self.procedure = procedure
+        self.status = ProcedureStatus.IDLE
+        self.current_step = -1
+        self.step_states = [RuntimeStepState() for _ in procedure.steps]
+
+    def to_dict(self) -> dict:
+        steps = []
+        for step, state in zip(self.procedure.steps, self.step_states):
+            step_dict = dict(step)
+            step_dict.update(
+                {"status": state.status.value, "elapsed_time": state.elapsed_time}
+            )
+            steps.append(step_dict)
+
+        return {
+            "id": self.procedure.id,
+            "name": self.procedure.name,
+            "steps": steps,
+            "status": self.status.value,
+            "current_step": self.current_step,
+        }
+
+
 class Procedure:
     id: str
     name: str
     steps: list[ProcedureStep]
-    _current_step: int
 
     def __init__(self, name: str, steps: list[ProcedureStep], id: str = None):
         self.id = id or str(uuid.uuid4())
         self.name = name
         self.steps = steps
-        self._current_step = -1
-
-    @property
-    def current_step(self) -> int:
-        return self._current_step
-
-    @current_step.setter
-    def current_step(self, value: int) -> None:
-        self._current_step = value
 
     def __iter__(self):
         yield ("id", self.id)
