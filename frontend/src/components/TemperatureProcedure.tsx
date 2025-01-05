@@ -56,7 +56,7 @@ const TemperatureProcedure: React.FC = () => {
     form.resetFields();
   };
 
-  const handleDelete = async (procedureId: number, e?: React.MouseEvent) => {
+  const handleDelete = async (procedureId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     await dispatch(deleteProcedure(procedureId));
   };

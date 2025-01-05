@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import axios from 'axios';
 import { HTTP_BASE_URL } from '../../constants';
 
 interface ProcedureStep {
@@ -7,7 +8,7 @@ interface ProcedureStep {
 }
 
 export interface TemperatureProcedure {
-  id: number;
+  id: string;
   name: string;
   steps: ProcedureStep[];
 }
@@ -34,8 +35,7 @@ const initialState: ProcedureState = {
 export const fetchProcedures = createAsyncThunk(
   'procedures/fetchProcedures',
   async () => {
-    const response = await fetch(`${HTTP_BASE_URL}/procedures`);
-    const data = await response.json();
+    const { data } = await axios.get(`${HTTP_BASE_URL}/procedures`);
     return data.procedures;
   }
 );
@@ -43,46 +43,23 @@ export const fetchProcedures = createAsyncThunk(
 export const createProcedure = createAsyncThunk(
   'procedures/createProcedure',
   async (procedure: CreateProcedurePayload) => {
-    const response = await fetch(`${HTTP_BASE_URL}/procedures`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(procedure),
-    });
-    const data = await response.json();
+    const { data } = await axios.post(`${HTTP_BASE_URL}/procedures`, procedure);
     return data;
   }
 );
 
 export const deleteProcedure = createAsyncThunk(
   'procedures/deleteProcedure',
-  async (procedureId: number) => {
-    const response = await fetch(`${HTTP_BASE_URL}/procedures/${procedureId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.detail || 'Failed to delete procedure');
-    }
+  async (procedureId: string) => {
+    await axios.delete(`${HTTP_BASE_URL}/procedures/${procedureId}`);
     return procedureId;
   }
 );
 
 export const updateProcedure = createAsyncThunk(
   'procedures/updateProcedure',
-  async ({ id, procedure }: { id: number; procedure: CreateProcedurePayload }) => {
-    const response = await fetch(`${HTTP_BASE_URL}/procedures/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(procedure),
-    });
-    const data = await response.json();
+  async ({ id, procedure }: { id: string; procedure: CreateProcedurePayload }) => {
+    const { data } = await axios.put(`${HTTP_BASE_URL}/procedures/${id}`, procedure);
     if (!data.id) {
       throw new Error(data.message || 'Failed to update procedure');
     }
