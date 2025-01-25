@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setTemperature } from '../store/slices/temperatureSlice';
 
 const ManualControl: React.FC = () => {
-  const [inputTemp, setInputTemp] = useState<number>(25);
+  const [inputTemp, setInputTemp] = useState<number>(0);
   const dispatch = useAppDispatch();
   const { loading } = useAppSelector((state: RootState) => state.temperature);
 

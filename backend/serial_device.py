@@ -109,8 +109,8 @@ class MockSerialDevice(SerialDevice):
         connected: bool = True,
     ):
         self._connected = connected
-        self._current_temp = self._to_temperature(current_temp or 25)
-        self._target_temp = self._to_temperature(target_temp or 25)
+        self._current_temp = self._to_temperature(current_temp or 0)
+        self._target_temp = self._to_temperature(target_temp or 0)
 
     def _to_temperature(self, value: Temperature | int | float | None) -> Temperature:
         if isinstance(value, Temperature):

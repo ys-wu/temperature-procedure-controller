@@ -235,8 +235,8 @@ class ProcedureExecutionService:
             except asyncio.CancelledError:
                 pass
 
-        # Reset device temperature to room temperature (25°C)
-        await self._device.set_temperature(Temperature(25))
+        # Reset device temperature to 0°C
+        await self._device.set_temperature(Temperature(0))
 
         # Mark current step as incomplete if it was running
         if self._active_procedure.current_step >= 0:

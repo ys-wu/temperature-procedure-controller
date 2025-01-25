@@ -6,7 +6,7 @@ from repository import JsonProcedureRepository
 from serial_device import MockSerialDevice, Temperature
 from services import ProcedureService, ProcedureExecutionService
 
-device = MockSerialDevice(25, 25)
+device = MockSerialDevice(0, 0)
 procedure_repository = JsonProcedureRepository()
 procedure_execution_service = ProcedureExecutionService(procedure_repository, device)
 procedure_service = ProcedureService(procedure_repository, procedure_execution_service)
