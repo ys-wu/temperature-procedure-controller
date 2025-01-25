@@ -288,6 +288,8 @@ class ProcedureExecutionService:
 
             if not self._should_stop:
                 self._active_procedure.status = ProcedureStatus.COMPLETED
+                # Reset temperature to 0°C after successful completion
+                await self._device.set_temperature(Temperature(0))
         except Exception as e:
             print(f"Error running procedure: {e}")
             if self._active_procedure:
