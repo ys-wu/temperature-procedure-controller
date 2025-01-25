@@ -14,6 +14,7 @@ from model import (
 )
 from repository import IProcedureRepository
 from serial_device import SerialDevice
+from temperature_logger import TemperatureLogger
 
 
 class ProcedureResponse(TypedDict):
@@ -174,6 +175,7 @@ class ProcedureExecutionService:
         self._active_procedure: RuntimeProcedureState | None = None
         self._task: asyncio.Task | None = None
         self._should_stop = False
+        self._temperature_logger = TemperatureLogger()
 
     def get_active_procedure(self) -> RuntimeProcedureState | None:
         return self._active_procedure
@@ -205,6 +207,10 @@ class ProcedureExecutionService:
         self._active_procedure.status = ProcedureStatus.RUNNING
         self._active_procedure.current_step = 0
         self._should_stop = False
+
+        # Start a new temperature log file
+        self._temperature_logger.start_new_log(procedure_id, procedure.name)
+
         self._task = asyncio.create_task(self._run_procedure())
 
         return {
@@ -266,6 +272,14 @@ class ProcedureExecutionService:
                 for _ in range(step.duration):
                     if self._should_stop:
                         return
+
+                    # Log temperature data
+                    actual_temp = await self._device.read_temperature()
+                    self._temperature_logger.log_temperature(
+                        self._active_procedure.procedure.id,
+                        step.temperature,
+                        actual_temp,
+                    )
 
                     await asyncio.sleep(1)
                     state.elapsed_time += 1
