@@ -5,6 +5,7 @@ from typing import Callable, TypeVar, ParamSpec
 from decimal import Decimal
 from model import Temperature
 from functools import wraps
+import time
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -67,11 +68,13 @@ class RealSerialDevice(SerialDevice):
         self._target_temp: Temperature = Temperature(value=Decimal("0"))
         self._current_temp: Temperature = Temperature(value=Decimal("0"))
         self._lock = False
+        self._last_update_time = time.time()
 
     async def connect(self) -> None:
         try:
             while self._lock:
                 await asyncio.sleep(0.01)
+            self._lock = True
 
             self._serial = serial.Serial(
                 port=self._port,
@@ -91,6 +94,7 @@ class RealSerialDevice(SerialDevice):
     async def disconnect(self) -> None:
         while self._lock:
             await asyncio.sleep(0.01)
+        self._lock = True
 
         if self._serial and self._serial.is_open:
             self._serial.close()
@@ -98,11 +102,19 @@ class RealSerialDevice(SerialDevice):
         self._lock = False
         self._serial = None
 
+    def _has_one_second_passed(self) -> bool:
+        return time.time() - self._last_update_time >= 1
+
     @require_connection
     async def read_temperature(self) -> Temperature:
         try:
             while self._lock:
                 await asyncio.sleep(0.01)
+            self._lock = True
+
+            if not self._has_one_second_passed():
+                self._lock = False
+                return self._current_temp
 
             # Modbus RTU read holding registers command
             start_address = 0x2000  # Address for PV (process value)
@@ -147,6 +159,7 @@ class RealSerialDevice(SerialDevice):
         try:
             while self._lock:
                 await asyncio.sleep(0.01)
+            self._lock = True
 
             # Modbus RTU write single register command
             address = 0x2103  # Address for SP (set point)
@@ -165,7 +178,8 @@ class RealSerialDevice(SerialDevice):
             message += crc16(message)
 
             self._serial.write(message)
-            await asyncio.sleep(0.1)  # Wait for response
+            # await asyncio.sleep(0.1)  # Wait for response
+            self._serial.read(8)
             self._lock = False
 
         except serial.SerialException as e:
