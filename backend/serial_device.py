@@ -149,7 +149,7 @@ class RealSerialDevice(SerialDevice):
                 await asyncio.sleep(0.01)
 
             # Modbus RTU write single register command
-            address = 0x0001  # Address for SP (set point)
+            address = 0x2103  # Address for SP (set point)
             value = int(temperature.celsius * 10)  # Convert to correct scale
 
             message = bytearray(
@@ -165,13 +165,7 @@ class RealSerialDevice(SerialDevice):
             message += crc16(message)
 
             self._serial.write(message)
-            # await asyncio.sleep(0.01)  # Wait for response
-
-            response = self._serial.read(8)
-            if len(response) != 8:
-                raise IOError("Invalid response length")
-
-            self._target_temp = temperature
+            await asyncio.sleep(0.1)  # Wait for response
             self._lock = False
 
         except serial.SerialException as e:
