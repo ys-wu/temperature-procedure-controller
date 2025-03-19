@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs, Typography } from 'antd';
-import PortDropdown from './components/PortDropdown';
+// import PortDropdown from './components/PortDropdown';
 import TemperatureDisplay from './components/TemperatureDisplay';
 import TemperatureProcedure from './components/TemperatureProcedure';
 import ManualControl from './components/ManualControl';
@@ -14,9 +14,9 @@ function App() {
   return (
     <div style={{ margin: '24px', maxWidth: '1200px', marginLeft: 'auto', marginRight: 'auto' }}>
       <h1 style={{ marginBottom: '24px' }}>Temperature Procedure Controller</h1>
-      <div style={{ marginBottom: '24px' }}>
+      {/* <div style={{ marginBottom: '24px' }}>
         <PortDropdown />
-      </div>
+      </div> */}
       <div style={{ marginBottom: '24px' }}>
         <TemperatureDisplay />
       </div>
