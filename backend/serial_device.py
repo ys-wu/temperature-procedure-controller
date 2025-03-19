@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import serial
-import time
+import asyncio
 from typing import Callable, TypeVar, ParamSpec
 from decimal import Decimal
 from model import Temperature
@@ -66,9 +66,13 @@ class RealSerialDevice(SerialDevice):
         self._device_id = device_id
         self._target_temp: Temperature = Temperature(value=Decimal("0"))
         self._current_temp: Temperature = Temperature(value=Decimal("0"))
+        self._lock = False
 
     async def connect(self) -> None:
         try:
+            while self._lock:
+                await asyncio.sleep(0.01)
+
             self._serial = serial.Serial(
                 port=self._port,
                 baudrate=9600,
@@ -77,19 +81,29 @@ class RealSerialDevice(SerialDevice):
                 bytesize=serial.EIGHTBITS,
                 timeout=1,
             )
+            self._lock = False
         except serial.SerialException as e:
+            self._lock = False
             raise ConnectionError(
                 f"Failed to connect to device on port {self._port}: {str(e)}"
             )
 
     async def disconnect(self) -> None:
+        while self._lock:
+            await asyncio.sleep(0.01)
+
         if self._serial and self._serial.is_open:
             self._serial.close()
+
+        self._lock = False
         self._serial = None
 
     @require_connection
     async def read_temperature(self) -> Temperature:
         try:
+            while self._lock:
+                await asyncio.sleep(0.01)
+
             # Modbus RTU read holding registers command
             start_address = 0x2000  # Address for PV (process value)
             num_of_registers = 3
@@ -106,7 +120,7 @@ class RealSerialDevice(SerialDevice):
             message += crc16(message)
 
             self._serial.write(message)
-            time.sleep(0.5)  # Wait for response
+            # await asyncio.sleep(0.01)  # Wait for response
 
             response = self._serial.read(11)
             if len(response) != 11:
@@ -121,14 +135,19 @@ class RealSerialDevice(SerialDevice):
             traget_value = Decimal(str(target_temp / 10.0))  # Convert to correct scale
             self._target_temp = Temperature(value=traget_value)
 
+            self._lock = False
             return self._current_temp
 
         except (serial.SerialException, ValueError) as e:
+            self._lock = False
             raise IOError(f"Failed to read temperature: {str(e)}")
 
     @require_connection
     async def set_temperature(self, temperature: Temperature) -> None:
         try:
+            while self._lock:
+                await asyncio.sleep(0.01)
+
             # Modbus RTU write single register command
             address = 0x0001  # Address for SP (set point)
             value = int(temperature.celsius * 10)  # Convert to correct scale
@@ -146,15 +165,17 @@ class RealSerialDevice(SerialDevice):
             message += crc16(message)
 
             self._serial.write(message)
-            time.sleep(0.5)  # Wait for response
+            # await asyncio.sleep(0.01)  # Wait for response
 
             response = self._serial.read(8)
             if len(response) != 8:
                 raise IOError("Invalid response length")
 
             self._target_temp = temperature
+            self._lock = False
 
         except serial.SerialException as e:
+            self._lock = False
             raise IOError(f"Failed to set temperature: {str(e)}")
 
     async def is_connected(self) -> bool:
