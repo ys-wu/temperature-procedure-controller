@@ -3,10 +3,13 @@ from pydantic import BaseModel
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from repository import JsonProcedureRepository
-from serial_device import RealSerialDevice, Temperature
+from serial_device import Temperature, RealSerialDevice
+
+# from serial_device import MockSerialDevice
 from services import ProcedureService, ProcedureExecutionService
 
-device = RealSerialDevice()
+device = RealSerialDevice("COM5")
+# device = MockSerialDevice()
 procedure_repository = JsonProcedureRepository()
 procedure_execution_service = ProcedureExecutionService(procedure_repository, device)
 procedure_service = ProcedureService(procedure_repository, procedure_execution_service)
@@ -126,12 +129,15 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
 
     async def send_message(self, websocket: WebSocket):
+        if not await device.is_connected():
+            await device.connect()
+
         try:
             while True:
                 if websocket.client_state.value == 3:  # WebSocket.DISCONNECTED
                     break
 
-                status_data = device.status
+                status_data = await device.status()
                 active_procedure = procedure_execution_service.get_active_procedure()
                 if active_procedure:
                     status_data["active_procedure"] = active_procedure.to_dict()

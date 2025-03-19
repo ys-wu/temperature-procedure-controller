@@ -1,5 +1,5 @@
 In `/backend`
-- run `source .venv/bin/activate` to activate the virtual environment.
+- run `source venv/bin/activate` to activate the virtual environment.
 - run `make run` to start the FastAPI server.
 
 In `/frontend`

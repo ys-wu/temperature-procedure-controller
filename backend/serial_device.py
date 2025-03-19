@@ -115,8 +115,12 @@ class RealSerialDevice(SerialDevice):
             # Parse response
             meas_temp = int.from_bytes(response[3:5], byteorder="big")
             temp_value = Decimal(str(meas_temp / 10.0))  # Convert to correct scale
-
             self._current_temp = Temperature(value=temp_value)
+
+            target_temp = int.from_bytes(response[7:9], byteorder="big")
+            traget_value = Decimal(str(target_temp / 10.0))  # Convert to correct scale
+            self._target_temp = Temperature(value=traget_value)
+
             return self._current_temp
 
         except (serial.SerialException, ValueError) as e:
@@ -217,8 +221,7 @@ class MockSerialDevice(SerialDevice):
     async def is_connected(self) -> bool:
         return self._connected
 
-    @property
-    def status(self) -> dict[str, float | str]:
+    async def status(self) -> dict[str, float | str]:
         self._update_temperature()
         return {
             "temperature_setpoint": self._target_temp.float_celsius,
