@@ -329,7 +329,7 @@ const TemperatureProcedure: React.FC = () => {
                       label="Temperature (°C)"
                       rules={[{ required: true, message: 'Missing temperature' }]}
                     >
-                      <InputNumber min={0} max={100} placeholder="Enter temperature" />
+                      <InputNumber min={0} max={1000} placeholder="Enter temperature" />
                     </Form.Item>
                     <Form.Item
                       {...restField}
